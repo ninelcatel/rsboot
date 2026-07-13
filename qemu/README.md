@@ -1,12 +1,12 @@
 ## dependencies
 
-### **to do** will add script commands for other distros later
+### **to do**:  add commands for other distros 
 
 ```sh
 sudo pacman -S qemu-full edk2-ovmf
 ```
 
-## copy OVMF in this directory
+### copy OVMF in this directory
 
 double check path after installing edk2-ovmf package (see [Makefile](./Makefile))
 
@@ -20,7 +20,7 @@ make setup     # copies OVMF_CODE.fd and OVMF_VARS.fd here
 make run          # boot firmware only 
 make run MEM=4G 
 make run NOGRAPHIC=1 # terminal/serial approach
-make run-app      # boots the app (copies it from the build)
+make run-app      # boots the app
 make clean        # remove generated esp
 ```
 
