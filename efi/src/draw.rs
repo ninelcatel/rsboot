@@ -1,6 +1,10 @@
+use core::fmt::Write;
+use uefi::proto::console::text::Color;
 use uefi::system;
 
 use crate::environment;
+
+const BACKGROUND: Color = Color::Black;
 
 pub fn draw_menu(selected: usize, items: &[&str], env: &environment::ENV) {
     system::with_stdout(|out| {
@@ -8,9 +12,12 @@ pub fn draw_menu(selected: usize, items: &[&str], env: &environment::ENV) {
         match env {
             environment::ENV::MENU => {
                 for (i, item) in items.iter().enumerate() {
-                    let marker = if i == selected { "* " } else { "  " };
-
-                    uefi::println!("{marker}{item}");
+                    if i == selected {
+                        out.set_color(Color::Magenta, BACKGROUND).unwrap();
+                    } else {
+                        out.set_color(Color::LightGray, BACKGROUND).unwrap();
+                    };
+                    out.write_fmt(format_args!("{item}\n")).unwrap();
                 }
             }
             environment::ENV::OS => {
