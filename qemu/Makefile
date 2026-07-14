@@ -7,7 +7,8 @@ else
 endif
 
 MEM ?= 2G
-OVMF_SRC := /usr/share/edk2/x64 # double check path after installing edk2-ovmf package
+OVMF_SRC := /usr/share/edk2/x64
+# double check path after installing edk2-ovmf package
 
 OVMF_CODE := OVMF_CODE.fd
 OVMF_VARS := OVMF_VARS.fd

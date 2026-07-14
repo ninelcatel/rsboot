@@ -1,0 +1,8 @@
+[package]
+name = "rsboot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.33"
+uefi = { version = "0.39.0", features = ["logger", "panic_handler"] }
