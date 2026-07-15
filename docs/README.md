@@ -15,12 +15,12 @@
 Will start with Linux only, Windows/BSD might or might not be implemented
 
 ## Phase 1: .efi is directly flashed into QEMU 
-1.1 Building the TUI (in progress)
-1.2 Loading another local .efi and booting into it
-1.3 Booting into OS .iso loaded in RAM
-1.4 DHCP + HTTP get
-1.5 Verify the .iso (checksums)
-1.6 Boot the verified .iso
+1. Building the TUI (in progress)
+2. Loading another local .efi and booting into it
+3. Booting into OS .iso loaded in RAM
+4. DHCP + HTTP get
+5. Verify the .iso (checksums)
+6. Boot the verified .iso
 
 ## Phase 2: PXE/Network Boot via Docker
 **To Do**
