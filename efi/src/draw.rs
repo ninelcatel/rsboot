@@ -1,119 +1,126 @@
 use core::fmt::Write;
 use uefi::proto::console::text::Color;
-use uefi::system;
 
 use crate::environment;
 
 const RECT: Color = Color::LightGray;
 const TITLE: &str = "Welcome to";
 const SUBTITLE: &str = "Please select the OS you wish to install.";
+const PROJECT_TITLE: &str = "rsboot";
 
-pub fn clear_screen() {
-    system::with_stdout(|out| {
-        out.set_color(Color::LightGray, Color::Black).unwrap(); // set colors to default
-        out.clear().unwrap();
-    });
+pub struct Tui<'a> {
+    out: &'a mut uefi::proto::console::text::Output,
+    cols: usize,
+    rows: usize,
 }
 
-pub fn draw_menu(selected: usize, items: &[&str], env: &environment::ENV) {
-    system::with_stdout(|out| {
-        draw_rect(out);
+impl<'a> Tui<'a> {
+    pub fn new(out: &mut uefi::proto::console::text::Output) -> Tui {
+        let (cols, rows) = Tui::get_dimensions(out);
+        Tui { out, cols, rows }
+    }
 
-        draw_title(out);
+    pub fn clear_screen(&mut self) {
+        self.out.set_color(Color::LightGray, Color::Black).unwrap(); // set colors to default
+        self.out.clear().unwrap();
+    }
+
+    pub fn draw_menu(&mut self, selected: usize, items: &[&str], env: &environment::Env) {
+        self.draw_rect();
+        self.draw_title();
 
         match env {
-            environment::ENV::MENU => {
+            environment::Env::Menu => {
                 for i in 0..items.len() {
-                    draw_item(out, items, i, selected);
+                    self.draw_item(items, i, selected);
                 }
             }
-            environment::ENV::OS => {
-                out.set_color(Color::Magenta, RECT).unwrap();
+            environment::Env::Os => {
+                self.out.set_color(Color::Magenta, RECT).unwrap();
 
-                center_line(out, items[selected], 0);
+                self.center_line(items[selected], 0);
 
-                out.write_fmt(format_args!("{}", items[selected])).unwrap();
+                self.out
+                    .write_fmt(format_args!("{}", items[selected]))
+                    .unwrap();
             }
         }
-    });
-}
-
-fn draw_item(
-    out: &mut uefi::proto::console::text::Output,
-    items: &[&str],
-    i: usize,
-    selected: usize,
-) {
-    if i == selected {
-        out.set_color(Color::Magenta, RECT).unwrap();
-    } else {
-        out.set_color(Color::Black, RECT).unwrap();
     }
-    center_line(out, items[i], i);
-    out.write_fmt(format_args!("{}", items[i])).unwrap();
-}
 
-// helper function to overwrite only the 2 affected selections
-pub fn update_selection(items: &[&str], old: usize, new: usize) {
-    system::with_stdout(|out| {
-        draw_item(out, items, old, new);
-        draw_item(out, items, new, new);
-    });
-}
+    fn draw_item(&mut self, items: &[&str], i: usize, selected: usize) {
+        if i == selected {
+            self.out.set_color(Color::Magenta, RECT).unwrap();
+        } else {
+            self.out.set_color(Color::Black, RECT).unwrap();
+        }
+        self.center_line(items[i], i);
+        self.out.write_fmt(format_args!("{}", items[i])).unwrap();
+    }
 
-pub fn get_dimensions(out: &uefi::proto::console::text::Output) -> (usize, usize) {
-    let (cols, rows) = out
-        .current_mode()
-        .ok()
-        .flatten()
-        .map(|m| (m.columns(), m.rows()))
-        .unwrap();
-    (cols, rows)
-}
+    // helper function to overwrite only the 2 affected selections
+    pub fn update_selection(&mut self, items: &[&str], old: usize, new: usize) {
+        self.draw_item(items, old, new);
+        self.draw_item(items, new, new);
+    }
 
-pub fn draw_title(out: &mut uefi::proto::console::text::Output) {
-    let (cols, rows) = get_dimensions(out);
-    let col = cols.saturating_sub(TITLE.chars().count() + 8) / 2; // + 8 de la " rsboot!"
-    out.set_color(Color::Red, RECT).unwrap();
+    fn get_dimensions(out: &uefi::proto::console::text::Output) -> (usize, usize) {
+        let (cols, rows) = out
+            .current_mode()
+            .ok()
+            .flatten()
+            .map(|m| (m.columns(), m.rows()))
+            .unwrap();
+        (cols, rows)
+    }
 
-    out.set_cursor_position(col, rows / 5).unwrap();
-    out.write_fmt(format_args!("{TITLE}")).unwrap();
+    fn draw_title(&mut self) {
+        let col = self
+            .cols
+            .saturating_sub(TITLE.len() + PROJECT_TITLE.len() + 2)
+            / 2; // + 2 pentru spatii!"
+        self.out.set_color(Color::Red, RECT).unwrap();
 
-    out.set_cursor_position(col + TITLE.len() + 1, rows / 5)
-        .unwrap();
-    out.set_color(Color::Yellow, RECT).unwrap();
-    out.write_fmt(format_args!("rsboot")).unwrap();
+        self.out.set_cursor_position(col, self.rows / 5).unwrap();
+        self.out.write_fmt(format_args!("{TITLE}")).unwrap();
 
-    out.set_cursor_position(col + TITLE.len() + 7, rows / 5)
-        .unwrap();
-    out.set_color(Color::Red, RECT).unwrap();
-    out.write_fmt(format_args!("!")).unwrap();
+        self.out
+            .set_cursor_position(col + TITLE.len() + 1, self.rows / 5)
+            .unwrap();
+        self.out.set_color(Color::Yellow, RECT).unwrap();
+        self.out.write_fmt(format_args!("{PROJECT_TITLE}")).unwrap();
 
-    let col2 = cols.saturating_sub(SUBTITLE.chars().count()) / 2;
+        self.out
+            .set_cursor_position(col + TITLE.len() + PROJECT_TITLE.len() + 1, self.rows / 5)
+            .unwrap();
+        self.out.set_color(Color::Red, RECT).unwrap();
+        self.out.write_fmt(format_args!("!")).unwrap();
 
-    out.set_cursor_position(col2, rows / 5 + 1).unwrap();
-    out.write_fmt(format_args!("{SUBTITLE}")).unwrap();
-}
+        let col2 = self.cols.saturating_sub(SUBTITLE.len()) / 2;
 
-pub fn center_line(out: &mut uefi::proto::console::text::Output, text: &str, row_index: usize) {
-    let (cols, rows) = get_dimensions(out);
-    let col = cols.saturating_sub(text.chars().count()) / 2;
-    let row = rows / 3;
-    out.set_cursor_position(col, row + row_index).unwrap();
-}
+        self.out
+            .set_cursor_position(col2, self.rows / 5 + 1)
+            .unwrap();
+        self.out.write_fmt(format_args!("{SUBTITLE}")).unwrap();
+    }
 
-pub fn draw_rect(out: &mut uefi::proto::console::text::Output) {
-    let (cols, rows) = get_dimensions(out);
-    out.set_color(Color::Black, RECT).unwrap();
-    let col_start = cols / 5;
-    let col_end = cols - col_start;
-    let width = col_end - col_start;
+    fn center_line(&mut self, text: &str, row_index: usize) {
+        let col = self.cols.saturating_sub(text.len()) / 2;
+        let row = self.rows / 3;
+        self.out.set_cursor_position(col, row + row_index).unwrap();
+    }
 
-    let row_start = rows / 5;
-    let row_end = rows - row_start;
+    fn draw_rect(&mut self) {
+        self.out.set_color(Color::Black, RECT).unwrap();
+        let col_start = self.cols / 5;
+        let col_end = self.cols - col_start;
+        let width = col_end - col_start;
 
-    for r in row_start..row_end {
-        out.set_cursor_position(col_start, r).unwrap();
-        out.write_fmt(format_args!("{:width$}", "")).unwrap();
+        let row_start = self.rows / 5;
+        let row_end = self.rows - row_start;
+
+        for r in row_start..row_end {
+            self.out.set_cursor_position(col_start, r).unwrap();
+            self.out.write_fmt(format_args!("{:width$}", "")).unwrap();
+        }
     }
 }

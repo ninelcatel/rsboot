@@ -1,5 +1,4 @@
-pub enum ENV {
-    MENU,
-    OS,
-    // SOMETHING_ELSE,
+pub enum Env {
+    Menu,
+    Os, // SOMETHING_ELSE,
 }

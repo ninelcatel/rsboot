@@ -9,7 +9,7 @@ use uefi::system;
 mod draw;
 mod environment;
 
-use environment::ENV;
+use environment::Env;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
 
@@ -19,49 +19,52 @@ fn main() -> Status {
 
     let mut running: bool = true;
 
-    let mut env = ENV::MENU;
+    let mut env = Env::Menu;
     let mut current_pick: usize = 0;
 
-    draw::clear_screen();
-    draw::draw_menu(current_pick, &OS, &env);
+    system::with_stdout(|out| {
+        let mut tui = draw::Tui::new(out);
+        tui.clear_screen();
+        tui.draw_menu(current_pick, &OS, &env);
 
-    while running {
-        let Ok(Some(key)) = system::with_stdin(|stdin| stdin.read_key()) else {
-            continue;
-        };
+        while running {
+            let Ok(Some(key)) = system::with_stdin(|stdin| stdin.read_key()) else {
+                continue;
+            };
 
-        match (&env, key) {
-            (ENV::MENU, Key::Special(ScanCode::UP)) => {
-                let old = current_pick;
-                current_pick = current_pick.saturating_sub(1);
-                if current_pick != old {
-                    draw::update_selection(&OS, old, current_pick);
+            match (&env, key) {
+                (Env::Menu, Key::Special(ScanCode::UP)) => {
+                    let old = current_pick;
+                    current_pick = current_pick.saturating_sub(1);
+                    if current_pick != old {
+                        tui.update_selection(&OS, old, current_pick);
+                    }
+                    continue;
                 }
-                continue;
-            }
-            (ENV::MENU, Key::Special(ScanCode::DOWN)) => {
-                let old = current_pick;
-                if current_pick + 1 < OS.len() {
-                    current_pick += 1;
-                    draw::update_selection(&OS, old, current_pick);
+                (Env::Menu, Key::Special(ScanCode::DOWN)) => {
+                    let old = current_pick;
+                    if current_pick + 1 < OS.len() {
+                        current_pick += 1;
+                        tui.update_selection(&OS, old, current_pick);
+                    }
+                    continue;
                 }
-                continue;
+                (Env::Menu, Key::Special(ScanCode::ESCAPE)) => {
+                    running = false;
+                    tui.clear_screen();
+                }
+                (Env::Menu, Key::Printable(c)) if c == Char16::try_from('\r').unwrap() => {
+                    env = Env::Os;
+                }
+                (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
+                    env = Env::Menu;
+                }
+                _ => continue,
             }
-            (ENV::MENU, Key::Special(ScanCode::ESCAPE)) => {
-                running = false;
-                draw::clear_screen();
-            }
-            (ENV::MENU, Key::Printable(c)) if c == Char16::try_from('\r').unwrap() => {
-                env = ENV::OS;
-            }
-            (ENV::OS, Key::Special(ScanCode::ESCAPE)) => {
-                env = ENV::MENU;
-            }
-            _ => continue,
+
+            tui.draw_menu(current_pick, &OS, &env);
         }
-
-        draw::draw_menu(current_pick, &OS, &env);
-    }
+    });
 
     Status::SUCCESS
 }
