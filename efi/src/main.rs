@@ -15,9 +15,18 @@ const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
 
 #[entry]
 fn main() -> Status {
-    uefi::helpers::init().unwrap();
+    match run() {
+        Ok(()) => Status::SUCCESS,
+        Err(e) => e.status(),
+    }
+}
+
+fn run() -> uefi::Result {
+    uefi::helpers::init()?;
 
     let mut running: bool = true;
+
+    let enter: Char16 = Char16::try_from('\r').expect("'\\r' should always be a valid char");
 
     let mut env = Env::Menu;
     let mut current_pick: usize = 0;
@@ -28,7 +37,13 @@ fn main() -> Status {
         tui.draw_menu(current_pick, &OS, &env);
 
         while running {
-            let Ok(Some(key)) = system::with_stdin(|stdin| stdin.read_key()) else {
+            let key = system::with_stdin(|input| {
+                if let Ok(event) = input.wait_for_key_event() {
+                    let _ = uefi::boot::wait_for_event(&mut [event]);
+                }
+                input.read_key()
+            });
+            let Ok(Some(key)) = key else {
                 continue;
             };
 
@@ -53,7 +68,7 @@ fn main() -> Status {
                     running = false;
                     tui.clear_screen();
                 }
-                (Env::Menu, Key::Printable(c)) if c == Char16::try_from('\r').unwrap() => {
+                (Env::Menu, Key::Printable(c)) if c == enter => {
                     env = Env::Os;
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
@@ -66,5 +81,5 @@ fn main() -> Status {
         }
     });
 
-    Status::SUCCESS
+    Ok(())
 }
