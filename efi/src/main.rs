@@ -8,8 +8,11 @@ use uefi::system;
 
 mod draw;
 mod environment;
+mod loadbootable;
 
 use environment::Env;
+
+use crate::loadbootable::load_bootable;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
 
@@ -69,7 +72,8 @@ fn run() -> uefi::Result {
                     tui.clear_screen();
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
-                    env = Env::Os;
+                    // env = Env::Os;
+                    let _ = load_bootable(uefi::cstr16!("\\efi\\boot\\hello.efi"));
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
