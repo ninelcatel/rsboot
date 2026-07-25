@@ -73,7 +73,7 @@ fn run() -> uefi::Result {
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
                     // env = Env::Os;
-                    let _ = load_bootable(uefi::cstr16!("\\efi\\boot\\hello.efi"));
+                    load_bootable(uefi::cstr16!("\\Core-current.iso")).ok();
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
