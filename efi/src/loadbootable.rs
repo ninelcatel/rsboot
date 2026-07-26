@@ -28,6 +28,8 @@ struct EFI_RAM_DISK_PROTOCOL {
 const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
 const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
+const RAM_DISK_DXE: &[u8] = include_bytes!("../assets/RamDiskDxe.efi");
+
 // implementing this for the protocol to succesfully Identify it and not have to add a separate
 // attribute that may break the structs internal structure when calling the methods
 unsafe impl uefi::Identify for EFI_RAM_DISK_PROTOCOL {
@@ -66,9 +68,22 @@ pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
     let size = len as u64;
 
     // locate the ram disk protocol by its guid, then open it to call register
-    let mut handles_found =
-        uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID))?;
-    let ramdisk_handle = *handles_found.first().ok_or(uefi::Status::NOT_FOUND)?; // .first() to get the
+    let mut ramdisk_handlers =
+        uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID));
+    if ramdisk_handlers.is_err() {
+        let ram_disk_dxe_instance = uefi::boot::load_image(
+            handler,
+            uefi::boot::LoadImageSource::FromBuffer {
+                buffer: RAM_DISK_DXE,
+                file_path: None,
+            },
+        )?;
+        uefi::boot::start_image(ram_disk_dxe_instance)?;
+        ramdisk_handlers =
+            uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID));
+    }
+
+    let ramdisk_handle = *ramdisk_handlers?.first().ok_or(uefi::Status::NOT_FOUND)?; // .first() to get the
     // ramdisk protocol handle is installed only once in the uefi system therefore .first() is
     // enough and we dont need to iterate through it
     let ram_disk = uefi::boot::open_protocol_exclusive::<EFI_RAM_DISK_PROTOCOL>(ramdisk_handle)?;
@@ -105,7 +120,7 @@ pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
     //slice containing all the bytes except last 4 , last 4 bytes are just marking the end making it
     // impossible to find the actual filesystem handle (it queries STARTS_WITH)
 
-    handles_found = uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(
+    let handles_found = uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(
         &uefi::proto::media::fs::SimpleFileSystem::GUID,
     ))?;
     let mut fs_handle = None;
