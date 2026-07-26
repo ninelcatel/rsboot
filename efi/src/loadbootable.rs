@@ -9,26 +9,25 @@ extern crate alloc;
 #[repr(C)]
 struct EFI_DEVICE_PATH {
     r#type: u8,
-    SubType: u8,
-    Length: [u8; 2],
+    sub_type: u8,
+    length: [u8; 2],
 }
 
 #[repr(C)]
 struct EFI_RAM_DISK_PROTOCOL {
     register: unsafe extern "efiapi" fn(
-        RamDiskBase: u64,
-        RamDiskSize: u64,
-        RamDiskType: *const uefi::Guid,
-        ParentDevicePath: *const EFI_DEVICE_PATH,
-        DevicePath: *mut *const EFI_DEVICE_PATH,
+        ram_disk_base: u64,
+        ram_disk_size: u64,
+        ram_disk_type: *const uefi::Guid,
+        parent_device_path: *const EFI_DEVICE_PATH,
+        device_path: *mut *const EFI_DEVICE_PATH,
     ) -> uefi::Status,
-    unregister: unsafe extern "efiapi" fn(DevicePath: *const EFI_DEVICE_PATH) -> uefi::Status,
+    unregister: unsafe extern "efiapi" fn(device_path: *const EFI_DEVICE_PATH) -> uefi::Status,
 }
 
 const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
 const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
-
 // implementing this for the protocol to succesfully Identify it and not have to add a separate
 // attribute that may break the structs internal structure when calling the methods
 unsafe impl uefi::Identify for EFI_RAM_DISK_PROTOCOL {
@@ -48,11 +47,23 @@ pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
     })?;
     // loads the the file in RAM
 
-    // the ram disk points at this memory in place, when loading the bootable, Rust might free the
-    // buffer and then lead to undefined behaviour
-    let image: &mut [u8] = buffer.leak();
-    let base = image.as_ptr() as u64;
-    let size = image.len() as u64;
+    // when the .efi starts loading the kernel, initrd/initramfs and the modules
+    // its very likely it will use the memory location in which the buffer is currently
+    // located, so to not lead to undefined behaviour or just hang after the bootloader
+    // its indicated to allocate this buffer as MemoryType::RESERVED
+    let len = buffer.len();
+    let pages = len.div_ceil(uefi::boot::PAGE_SIZE);
+    let mem = uefi::boot::allocate_pages(
+        uefi::boot::AllocateType::AnyPages,
+        uefi::boot::MemoryType::RESERVED,
+        pages,
+    )?;
+    unsafe {
+        core::ptr::copy_nonoverlapping(buffer.as_ptr(), mem.as_ptr(), len);
+    }
+    drop(buffer); // no longer ened it 
+    let base = mem.as_ptr() as u64;
+    let size = len as u64;
 
     // locate the ram disk protocol by its guid, then open it to call register
     let mut handles_found =
