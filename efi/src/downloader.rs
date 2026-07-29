@@ -1,6 +1,6 @@
 extern crate alloc;
 pub struct Downloader {
-    nic: uefi::Handle,
+    nic: uefi::Handle, //not sure if ill need this but kept it anyway.
     http: uefi::proto::network::http::HttpHelper,
 }
 
@@ -15,11 +15,25 @@ impl Downloader {
     }
     pub fn get(&mut self, url: &str) -> uefi::Result<alloc::vec::Vec<u8>> {
         self.http.request_get(url)?;
-        let mut content = self.http.response_first(true).unwrap().body;
-        loop {
-            let payload = self.http.response_more(&mut content)?;
-            if payload.is_empty() {
+        let first = self.http.response_first(true)?;
+
+        // need exact length, in order to know when the download is complete
+
+        // TODO: implement logic for http sites that DONT have Content-Length
+        let mut len = None;
+        for (key, val) in first.headers {
+            if key.eq_ignore_ascii_case("content-length") {
+                len = val.parse::<usize>().ok();
                 break;
+            }
+        }
+        let mut content = first.body;
+        if let Some(item) = len {
+            loop {
+                if item <= content.len() {
+                    break;
+                }
+                self.http.response_more(&mut content).unwrap();
             }
         }
         Ok(content)

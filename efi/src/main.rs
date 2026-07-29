@@ -17,8 +17,8 @@ use crate::loadbootable::boot_from_bytes;
 use crate::loadbootable::load_bootable;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
-const DEBIAN_URL: &str =
-    "http://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.6.0-amd64-netinst.iso";
+const DEBIAN_URL: &str = "http://10.0.2.2:8000/mini.iso"; // QEMU's alias for host, translates to
+// localhost:8000
 
 #[entry]
 fn main() -> Status {
@@ -30,6 +30,8 @@ fn main() -> Status {
 
 fn run() -> uefi::Result {
     uefi::helpers::init()?;
+    log::set_max_level(log::LevelFilter::Info); // without this, it adds unnecessarry buffering and
+    // downloads REALLY slow
     let mut dl = downloader::Downloader::connect()?;
 
     let mut running: bool = true;
