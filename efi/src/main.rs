@@ -6,15 +6,19 @@ use uefi::prelude::*;
 use uefi::proto::console::text::{Key, ScanCode};
 use uefi::system;
 
+mod downloader;
 mod draw;
 mod environment;
 mod loadbootable;
 
 use environment::Env;
 
+use crate::loadbootable::boot_from_bytes;
 use crate::loadbootable::load_bootable;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
+const DEBIAN_URL: &str =
+    "http://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.6.0-amd64-netinst.iso";
 
 #[entry]
 fn main() -> Status {
@@ -26,6 +30,7 @@ fn main() -> Status {
 
 fn run() -> uefi::Result {
     uefi::helpers::init()?;
+    let mut dl = downloader::Downloader::connect()?;
 
     let mut running: bool = true;
 
@@ -73,7 +78,8 @@ fn run() -> uefi::Result {
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
                     // env = Env::Os;
-                    load_bootable(uefi::cstr16!("\\debian.iso")).ok();
+                    let buffer = dl.get(DEBIAN_URL).unwrap();
+                    boot_from_bytes(buffer).unwrap();
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;

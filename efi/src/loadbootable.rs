@@ -47,6 +47,12 @@ pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
         log::error!("failed to read {path}, {e}");
         uefi::Status::LOAD_ERROR
     })?;
+    boot_from_bytes(buffer)
+}
+
+pub fn boot_from_bytes(buffer: alloc::vec::Vec<u8>) -> uefi::Result {
+    let handler = uefi::boot::image_handle();
+
     // loads the the file in RAM
 
     // when the .efi starts loading the kernel, initrd/initramfs and the modules
