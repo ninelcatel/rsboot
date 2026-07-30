@@ -37,6 +37,7 @@ unsafe impl uefi::Identify for EFI_RAM_DISK_PROTOCOL {
 }
 impl uefi::proto::Protocol for EFI_RAM_DISK_PROTOCOL {}
 
+#[allow(dead_code)]
 pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
     let handler = uefi::boot::image_handle();
 

@@ -1,6 +1,5 @@
 extern crate alloc;
 pub struct Downloader {
-    nic: uefi::Handle, //not sure if ill need this but kept it anyway.
     http: uefi::proto::network::http::HttpHelper,
 }
 
@@ -11,7 +10,7 @@ impl Downloader {
         ip.ifup()?;
         let mut http = uefi::proto::network::http::HttpHelper::new(nic)?;
         http.configure()?;
-        Ok(Self { nic, http })
+        Ok(Self { http })
     }
     pub fn get(&mut self, url: &str) -> uefi::Result<alloc::vec::Vec<u8>> {
         self.http.request_get(url)?;
