@@ -28,11 +28,23 @@ impl Downloader {
         }
         let mut content = first.body;
         if let Some(item) = len {
+            content.reserve(item.saturating_sub(content.len()));
             loop {
                 if item <= content.len() {
                     break;
                 }
-                self.http.response_more(&mut content).unwrap();
+                self.http.response_more(&mut content)?;
+            }
+        } else {
+            loop {
+                match self.http.response_more(&mut content) {
+                    Ok(chunk) if chunk.is_empty() => break,
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::info!("Error in downloading the file! {e}");
+                        break;
+                    }
+                }
             }
         }
         Ok(content)

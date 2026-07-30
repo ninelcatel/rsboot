@@ -16,7 +16,7 @@ use environment::Env;
 use crate::loadbootable::boot_from_bytes;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
-const DEBIAN_URL: &str = "http://10.0.2.2:8000/mini.iso"; // QEMU's alias for host, translates to
+const DEBIAN_URL: &str = "http://10.0.2.2:8000/debian.iso"; // QEMU's alias for host, translates to
 // localhost:8000
 
 #[entry]
