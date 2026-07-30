@@ -15,12 +15,14 @@
 Will start with Linux only, Windows/BSD might or might not be implemented
 
 ## Phase 1: .efi is directly flashed into QEMU 
-1. Building the TUI (in progress)
-2. Loading another local .efi and booting into it
-3. Booting into OS .iso loaded in RAM
-4. DHCP + HTTP get
-5. Verify the .iso (checksums)
-6. Boot the verified .iso
+1. Building the TUI (mostly done, needs updated for OS version selection)
+2. Loading another local .efi and booting into it (done)
+3. Booting into OS .iso loaded in RAM (done)
+4. DHCP + HTTP get (done)
+5. Figure out how to boot  into Arch based distros, Nix, Gentoo,my best guess is that they rely on actual media rather than ramdisk
+6. Verify the .iso (checksums)
+7. Boot the verified .iso
+
 
 ## Phase 2: PXE/Network Boot via Docker
 **To Do**
