@@ -48,31 +48,15 @@ pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
         log::error!("failed to read {path}, {e}");
         uefi::Status::LOAD_ERROR
     })?;
-    boot_from_bytes(buffer)
+    boot_from_iso(crate::downloader::IsoBuffer::from_bytes(&buffer)?)
 }
 
-pub fn boot_from_bytes(buffer: alloc::vec::Vec<u8>) -> uefi::Result {
+pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
     let handler = uefi::boot::image_handle();
 
-    // loads the the file in RAM
-
-    // when the .efi starts loading the kernel, initrd/initramfs and the modules
-    // its very likely it will use the memory location in which the buffer is currently
-    // located, so to not lead to undefined behaviour or just hang after the bootloader
-    // its indicated to allocate this buffer as MemoryType::RESERVED
-    let len = buffer.len();
-    let pages = len.div_ceil(uefi::boot::PAGE_SIZE);
-    let mem = uefi::boot::allocate_pages(
-        uefi::boot::AllocateType::AnyPages,
-        uefi::boot::MemoryType::RESERVED,
-        pages,
-    )?;
-    unsafe {
-        core::ptr::copy_nonoverlapping(buffer.as_ptr(), mem.as_ptr(), len);
-    }
-    drop(buffer); // no longer ened it 
-    let base = mem.as_ptr() as u64;
-    let size = len as u64;
+    // the iso is already allocated  so we only register those pages as virtual cd
+    let base = iso.as_ptr() as u64;
+    let size = iso.len() as u64;
 
     // locate the ram disk protocol by its guid, then open it to call register
     let mut ramdisk_handlers =

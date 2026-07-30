@@ -13,10 +13,10 @@ mod loadbootable;
 
 use environment::Env;
 
-use crate::loadbootable::boot_from_bytes;
+use crate::loadbootable::boot_from_iso;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
-const DEBIAN_URL: &str = "http://10.0.2.2:8000/debian.iso"; // QEMU's alias for host, translates to
+const DEBIAN_URL: &str = "http://10.0.2.2:8000/nixos_gui.iso"; // QEMU's alias for host, translates to
 // localhost:8000
 
 #[entry]
@@ -80,7 +80,7 @@ fn run() -> uefi::Result {
                 (Env::Menu, Key::Printable(c)) if c == enter => {
                     // env = Env::Os;
                     let buffer = dl.get(DEBIAN_URL).unwrap();
-                    boot_from_bytes(buffer).unwrap();
+                    boot_from_iso(buffer).unwrap();
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
