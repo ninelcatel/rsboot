@@ -28,6 +28,7 @@ struct EFI_RAM_DISK_PROTOCOL {
 const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
 const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
+const BOOT_FILE_ARCH: &uefi::CStr16 = uefi::cstr16!("\\ARCH\\BOOT\\X86_64\\VMLINUZ-LINUX");
 const RAM_DISK_DXE: &[u8] = include_bytes!("../assets/RamDiskDxe.efi");
 
 // implementing this for the protocol to succesfully Identify it and not have to add a separate
@@ -143,11 +144,20 @@ pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
 
     let full_path = builder
         .push(&uefi::proto::device_path::build::media::FilePath {
-            path_name: BOOT_FILE,
+            path_name: BOOT_FILE_ARCH,
         })
         .unwrap()
         .finalize()
         .unwrap(); // too lazy to treat these results
+    let cmdline_str = alloc::format!(
+        "archisobasedir=arch archisosearchuuid=2026-07-01-16-36-20-00 \
+     initrd=\\arch\\boot\\x86_64\\initramfs-linux.img \
+     memmap={:#x}!{:#x}",
+        iso.mapped_len(),
+        iso.as_ptr() as usize,
+    );
+
+    let cmdline = uefi::CString16::try_from(cmdline_str.as_str()).unwrap();
 
     let instance = uefi::boot::load_image(
         handler,
@@ -156,7 +166,12 @@ pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
             boot_policy: uefi::proto::BootPolicy::ExactMatch,
         },
     )?;
-
+    let mut loaded_image =
+        uefi::boot::open_protocol_exclusive::<uefi::proto::loaded_image::LoadedImage>(instance)?;
+    unsafe {
+        loaded_image.set_load_options(cmdline.as_ptr().cast(), cmdline.num_bytes() as u32);
+    }
+    drop(loaded_image);
     uefi::boot::start_image(instance)?;
     // hangs until the .efi exits
     Ok(())

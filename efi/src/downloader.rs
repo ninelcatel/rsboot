@@ -1,5 +1,10 @@
+use core::fmt::Write;
+
+use uefi::system::with_stdout;
+
 extern crate alloc;
 
+const PAGE_ALLIGNER: usize = 2 << 10 << 10; // 2 MB
 // the whole iso, living in one contiuous allocation (RESERVED so the booted OS
 // won't reuse it). write the download straight into it, so there's
 // never a second copy at boot time, was leading to OOM panics.
@@ -8,17 +13,22 @@ extern crate alloc;
 pub struct IsoBuffer {
     base: core::ptr::NonNull<u8>,
     len: usize,
+    mapped: usize,
 }
 
 impl IsoBuffer {
     pub fn new(len: usize) -> uefi::Result<Self> {
-        let pages = len.div_ceil(uefi::boot::PAGE_SIZE).max(1);
-        let base = uefi::boot::allocate_pages(
+        let mapped = len.next_multiple_of(PAGE_ALLIGNER);
+        let pages = (mapped + PAGE_ALLIGNER).div_ceil(uefi::boot::PAGE_SIZE);
+        let raw = uefi::boot::allocate_pages(
             uefi::boot::AllocateType::AnyPages,
             uefi::boot::MemoryType::RESERVED,
             pages,
         )?;
-        Ok(Self { base, len })
+
+        let alligned = (raw.as_ptr() as usize).next_multiple_of(PAGE_ALLIGNER);
+        let base = core::ptr::NonNull::new(alligned as *mut u8).unwrap();
+        Ok(Self { base, len, mapped })
     }
     // this is used for the load_bootable method, will be needded for OSs that ship via .efi even
     // though its not iso, example: arch, its bootloader doesnt have a certain kernel module which
@@ -46,6 +56,9 @@ impl IsoBuffer {
 
     pub fn len(&self) -> usize {
         self.len
+    }
+    pub fn mapped_len(&self) -> usize {
+        self.mapped
     }
 }
 
@@ -77,6 +90,12 @@ impl Downloader {
         }
 
         let iso = IsoBuffer::new(len)?;
+        /*
+        let lenn = iso.mapped_len();
+        let ptrr = iso.as_ptr() as usize;
+
+        with_stdout(|out| out.write_fmt(format_args!("{lenn:#x}|{ptrr:#x}\r\n"))).ok();
+        */
 
         // the first response might have more than the headers, so append to the buffer
         let mut written = first.body.len();

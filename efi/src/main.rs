@@ -16,7 +16,7 @@ use environment::Env;
 use crate::loadbootable::boot_from_iso;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
-const DEBIAN_URL: &str = "http://10.0.2.2:8000/nixos_gui.iso"; // QEMU's alias for host, translates to
+const DEBIAN_URL: &str = "http://10.0.2.2:8000/arch.iso"; // QEMU's alias for host, translates to
 // localhost:8000
 
 #[entry]
@@ -26,7 +26,6 @@ fn main() -> Status {
         Err(e) => e.status(),
     }
 }
-
 fn run() -> uefi::Result {
     uefi::helpers::init()?;
     log::set_max_level(log::LevelFilter::Info); // without this, it adds unnecessarry buffering and
