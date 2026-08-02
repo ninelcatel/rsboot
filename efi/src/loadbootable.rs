@@ -2,7 +2,7 @@
 // qemu was set up with the root file system at /esp , a valid path for example would be
 // \\efi\\boot\\hello.efi
 
-use uefi::Identify;
+use uefi::{Identify, boot::start_image};
 
 extern crate alloc;
 
@@ -27,8 +27,9 @@ struct EFI_RAM_DISK_PROTOCOL {
 
 const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
 const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
+#[allow(dead_code)]
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
-const BOOT_FILE_ARCH: &uefi::CStr16 = uefi::cstr16!("\\ARCH\\BOOT\\X86_64\\VMLINUZ-LINUX");
+const BOOT_FILE_ARCH: &uefi::CStr16 = uefi::cstr16!("\\loader\\entries\\01-archiso-linux.conf");
 const RAM_DISK_DXE: &[u8] = include_bytes!("../assets/RamDiskDxe.efi");
 
 // implementing this for the protocol to succesfully Identify it and not have to add a separate
@@ -142,22 +143,15 @@ pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
         builder = builder.push(&node).unwrap();
     }
 
+    let (kernel, initrd, options) =
+        get_kic_paths(fs_handle, BOOT_FILE_ARCH).ok_or(uefi::Status::NOT_FOUND)?;
+
+    // builder is currently holding the ROOT file system
     let full_path = builder
-        .push(&uefi::proto::device_path::build::media::FilePath {
-            path_name: BOOT_FILE_ARCH,
-        })
+        .push(&uefi::proto::device_path::build::media::FilePath { path_name: &kernel })
         .unwrap()
         .finalize()
         .unwrap(); // too lazy to treat these results
-    let cmdline_str = alloc::format!(
-        "archisobasedir=arch archisosearchuuid=2026-07-01-16-36-20-00 \
-     initrd=\\arch\\boot\\x86_64\\initramfs-linux.img \
-     memmap={:#x}!{:#x}",
-        iso.mapped_len(),
-        iso.as_ptr() as usize,
-    );
-
-    let cmdline = uefi::CString16::try_from(cmdline_str.as_str()).unwrap();
 
     let instance = uefi::boot::load_image(
         handler,
@@ -166,13 +160,68 @@ pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
             boot_policy: uefi::proto::BootPolicy::ExactMatch,
         },
     )?;
-    let mut loaded_image =
-        uefi::boot::open_protocol_exclusive::<uefi::proto::loaded_image::LoadedImage>(instance)?;
+
+    boot_kernel(
+        iso.mapped_len(),
+        iso.as_ptr() as usize,
+        instance,
+        &initrd,
+        &options,
+    )
+}
+
+// helper function to add the boot options for the kernel
+fn boot_kernel(
+    mapped_length: usize,
+    base: usize,
+    instance: uefi::Handle,
+    initrd: &uefi::CStr16,
+    options: &uefi::CStr16,
+) -> uefi::Result {
+    // first, add the boot options for the kernel
+    let cmdline: uefi::CString16 = uefi::CString16::try_from(
+        alloc::format!("{options} initrd={initrd} memmap={mapped_length:#x}!{base:#x}").as_str(),
+    )
+    .unwrap();
+
     unsafe {
+        let mut loaded_image =
+            uefi::boot::open_protocol_exclusive::<uefi::proto::loaded_image::LoadedImage>(instance)
+                .unwrap();
         loaded_image.set_load_options(cmdline.as_ptr().cast(), cmdline.num_bytes() as u32);
+        drop(loaded_image);
     }
-    drop(loaded_image);
-    uefi::boot::start_image(instance)?;
-    // hangs until the .efi exits
-    Ok(())
+    start_image(instance)
+}
+// get_Kernel Initrd Cmdline_paths
+fn get_kic_paths(
+    fs_handle: uefi::Handle,
+    path: &uefi::CStr16,
+) -> Option<(uefi::CString16, uefi::CString16, uefi::CString16)> {
+    let scoped_fs =
+        uefi::boot::open_protocol_exclusive::<uefi::proto::media::fs::SimpleFileSystem>(fs_handle)
+            .ok()?;
+    let mut fs = uefi::fs::FileSystem::new(scoped_fs);
+
+    let config = fs.read(path).ok()?;
+    let text = core::str::from_utf8(&config).unwrap_or("");
+    let (mut kernel, mut initrd, mut options) = (None, None, None);
+
+    for line in text.lines() {
+        let l = line.trim();
+        if let Some(s) = l.strip_prefix("linux ") {
+            kernel = Some(s.trim().replace('/', "\\"));
+        }
+        if let Some(s) = l.strip_prefix("initrd ") {
+            initrd = Some(s.trim().replace('/', "\\"));
+        }
+        if let Some(s) = l.strip_prefix("options ") {
+            options = Some(s.trim());
+        }
+    }
+    Some((
+        uefi::CString16::try_from(kernel?.as_str()).ok()?,
+        uefi::CString16::try_from(initrd?.as_str()).ok()?,
+        uefi::CString16::try_from(options?).ok()?,
+    ))
 }

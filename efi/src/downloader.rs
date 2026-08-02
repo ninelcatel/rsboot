@@ -1,7 +1,3 @@
-use core::fmt::Write;
-
-use uefi::system::with_stdout;
-
 extern crate alloc;
 
 const PAGE_ALLIGNER: usize = 2 << 10 << 10; // 2 MB
