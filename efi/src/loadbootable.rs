@@ -2,9 +2,14 @@
 // qemu was set up with the root file system at /esp , a valid path for example would be
 // \\efi\\boot\\hello.efi
 
-use uefi::{Identify, boot::start_image};
+use core::fmt::Write;
 
-use crate::environment::{self, BootMethod};
+use uefi::{Identify, boot::start_image, system::with_stdout};
+
+use crate::{
+    downloader::IsoBuffer,
+    environment::{self, BootMethod},
+};
 
 extern crate alloc;
 
@@ -176,6 +181,9 @@ pub fn boot_from_iso(
             start_image(instance)
         }
         BootMethod::Memmap => {
+            read_iso(&iso, "");
+            Ok(())
+            /*
             let (kernel, initrd, options) =
                 get_kic_paths(fs_handle).ok_or(uefi::Status::NOT_FOUND)?;
 
@@ -200,7 +208,7 @@ pub fn boot_from_iso(
                 instance,
                 &initrd,
                 &options,
-            )
+            )*/
         }
         _ => {
             log::error!("boot method not implemented yet");
@@ -276,4 +284,25 @@ fn get_kic_paths(
         uefi::CString16::try_from(initrd?.as_str()).ok()?,
         uefi::CString16::try_from(options?).ok()?,
     ))
+}
+
+fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8>> {
+    // wrap the in-RAM iso bytes as a Read+Seek source for hadris-iso
+    let bytes = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+    let cursor = hadris_io::Cursor::new(bytes);
+    let img = hadris_iso::sync::IsoImage::open(cursor).ok()?;
+    let root = img.root_dir();
+    for entry in root.iter(&img).entries() {
+        match entry {
+            Ok(e) => log::info!(
+                "{}{} ({} bytes)",
+                e.display_name(),
+                if e.is_directory() { "/" } else { "" },
+                e.size(),
+            ),
+            Err(e) => log::error!(" entry error: {e:?}"),
+        }
+    }
+    uefi::boot::stall(core::time::Duration::new(100, 0));
+    None
 }
