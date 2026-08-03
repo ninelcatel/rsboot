@@ -15,7 +15,7 @@ use environment::Env;
 
 use crate::loadbootable::boot_from_iso;
 
-const OS: [environment::OS; 5] = [
+const OS: [environment::OS; 6] = [
     environment::OS {
         name: "Debian",
         url: "http://10.0.2.2:8000/debian.iso",
@@ -40,6 +40,11 @@ const OS: [environment::OS; 5] = [
         name: "CachyOS",
         url: "http://10.0.2.2:8000/cachy.iso",
         boot_method: environment::BootMethod::Memmap,
+    },
+    environment::OS {
+        name: "Gentoo",
+        url: "http://10.0.2.2:8000/gentoo_gui.iso",
+        boot_method: environment::BootMethod::LoopInjection,
     },
 ];
 

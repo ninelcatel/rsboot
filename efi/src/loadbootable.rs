@@ -44,6 +44,15 @@ const LOAD_FILE2_GUID: uefi::Guid = uefi::guid!("4006c0c1-fcb3-403e-996d-4a6c872
 const DEVICE_PATH_GUID: uefi::Guid = uefi::guid!("09576e91-6d3f-11d2-8e39-00a0c969723b");
 const LINUX_EFI_INITRD_MEDIA_GUID: uefi::Guid = uefi::guid!("5568e427-68fc-4f3d-ac74-ca555231cc68");
 
+const CONFIGS: [&str; 2] = [
+    "boot/syslinux/archiso_sys-linux.cfg", // arch / cachy / blackarch (syslinux)
+    "boot/grub/grub.cfg",                  // gentoo etc (grub)
+];
+
+// make the appended hook run first
+const GENTOO_HOOK: &str = include_str!("../assets/gentoo.sh");
+const HOOK_PATH: &str = "usr/lib/dracut/hooks/pre-trigger/00-rsboot.sh";
+
 // implementing this for the protocol to succesfully Identify it and not have to add a separate
 // attribute that may break the structs internal structure when calling the methods
 unsafe impl uefi::Identify for EFI_RAM_DISK_PROTOCOL {
@@ -181,9 +190,55 @@ pub fn boot_from_iso(
 
             start_image(instance)
         }
+        BootMethod::LoopInjection => {
+            let cfg = CONFIGS
+                .iter()
+                .find_map(|p| read_iso(&iso, p))
+                .ok_or(uefi::Status::NOT_FOUND)?;
+            let (kernel_path, initrd_path, options) =
+                parse_config(cfg).ok_or(uefi::Status::NOT_FOUND)?;
+            let kernel_bytes = read_iso(&iso, &kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
+            let mut initrd = read_iso(&iso, &initrd_path).ok_or(uefi::Status::NOT_FOUND)?;
+
+            let iso_bytes = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+
+            // append our cpio as a new initramfs segment: the whole ISO (/rsboot.iso)
+            // plus the losetup hook. needs to be alligned first
+            while !initrd.len().is_multiple_of(4) {
+                initrd.push(0);
+            }
+            initrd.extend_from_slice(&build_cpio(&[
+                ("rsboot.iso", iso_bytes, 0o100644), // 100 - regular file 644 - chmod permissions
+                (HOOK_PATH, GENTOO_HOOK.as_bytes(), 0o100755), // 100 755 - chmod permisions
+            ]));
+
+            let instance = load_image(
+                handler,
+                uefi::boot::LoadImageSource::FromBuffer {
+                    buffer: &kernel_bytes,
+                    file_path: None,
+                },
+            )?;
+
+            install_initrd(&initrd)?;
+
+            let cmdline = uefi::CString16::try_from(options.as_str()).unwrap();
+            unsafe {
+                let mut loaded_image = uefi::boot::open_protocol_exclusive::<
+                    uefi::proto::loaded_image::LoadedImage,
+                >(instance)?;
+                loaded_image.set_load_options(cmdline.as_ptr().cast(), cmdline.num_bytes() as u32);
+            }
+
+            start_image(instance)
+        }
+
         BootMethod::Memmap => {
-            // read + parse the boot config
-            let cfg = read_iso(&iso, "boot/syslinux/archiso_sys-linux.cfg")
+            // read + parse the boot config  try the known config locations in order
+
+            let cfg = CONFIGS
+                .iter()
+                .find_map(|p| read_iso(&iso, p))
                 .ok_or(uefi::Status::NOT_FOUND)?;
             let (kernel_path, initrd_path, options) =
                 parse_config(cfg).ok_or(uefi::Status::NOT_FOUND)?;
@@ -240,34 +295,46 @@ fn parse_config(
     use alloc::string::ToString;
 
     let text = core::str::from_utf8(&config).unwrap_or("");
-    let (mut kernel, mut initrd, mut options) = (None, None, None);
+    // first entry only: is_none() condition
+    // configs list several menu entries,
+    let (mut kernel, mut initrd, mut options, mut inline_opts) = (None, None, None, None);
 
     for line in text.lines() {
         let l = line.trim();
-        if let Some(s) = l
-            .strip_prefix("linux ") // systemd boot config
-            .or_else(|| l.strip_prefix("LINUX ")) //syslinux boot config
-            .or_else(|| l.strip_prefix("KERNEL "))
-        // isolinux boot config
+        if kernel.is_none()
+            && let Some(s) = l
+                .strip_prefix("linux ") // systemd-boot / grub
+                .or_else(|| l.strip_prefix("LINUX ")) // syslinux
+                .or_else(|| l.strip_prefix("KERNEL "))
+        // isolinux
         {
-            kernel = Some(s.trim().to_string());
+            // grub combines "linux <path> <options>"; syslinux/systemd-boot give just the path
+            match s.trim().split_once(char::is_whitespace) {
+                Some((path, rest)) => {
+                    kernel = Some(path.to_string());
+                    inline_opts = Some(rest.trim().to_string());
+                }
+                None => kernel = Some(s.trim().to_string()),
+            }
         }
-        if let Some(s) = l
-            .strip_prefix("initrd ") //systemd boot config
-            .or_else(|| l.strip_prefix("INITRD "))
-        //syslinux/isolinux  boot config
+        if initrd.is_none()
+            && let Some(s) = l
+                .strip_prefix("initrd ") // systemd-boot / grub
+                .or_else(|| l.strip_prefix("INITRD "))
+        // syslinux/isolinux
         {
             initrd = Some(s.trim().to_string());
         }
-        if let Some(s) = l
-            .strip_prefix("options ") //systemd boot config
-            .or_else(|| l.strip_prefix("APPEND "))
-        // syslinux/isolinux boot config
+        if options.is_none()
+            && let Some(s) = l
+                .strip_prefix("options ") // systemd-boot
+                .or_else(|| l.strip_prefix("APPEND "))
+        // syslinux/isolinux
         {
             options = Some(s.trim().to_string());
         }
     }
-    Some((kernel?, initrd?, options?))
+    Some((kernel?, initrd?, options.or(inline_opts)?))
 }
 
 fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8>> {
@@ -397,4 +464,59 @@ fn install_initrd(initrd: &[u8]) -> uefi::Result {
         )?;
     }
     Ok(())
+}
+
+fn build_cpio(files: &[(&str, &[u8], u32)]) -> alloc::vec::Vec<u8> {
+    fn record(out: &mut alloc::vec::Vec<u8>, ino: u32, mode: u32, name: &str, data: &[u8]) {
+        let header = alloc::format!(
+            "070701{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}",
+            ino,
+            mode,
+            0,
+            0,
+            1,
+            0,
+            data.len(),
+            0,
+            0,
+            0,
+            0,
+            name.len() + 1,
+            0
+        );
+        // header format containing metadata
+        out.extend_from_slice(header.as_bytes());
+        out.extend_from_slice(name.as_bytes());
+        out.push(0); // \0 end of line
+        while !out.len().is_multiple_of(4) {
+            out.push(0);
+        }
+        out.extend_from_slice(data);
+        while !out.len().is_multiple_of(4) {
+            out.push(0);
+        }
+    }
+
+    let mut out = alloc::vec::Vec::new();
+    let mut ino = 1u32;
+    let mut added: alloc::vec::Vec<alloc::string::String> = alloc::vec::Vec::new();
+    for &(path, data, mode) in files {
+        let mut prefix = alloc::string::String::new();
+        let comps: alloc::vec::Vec<&str> = path.split('/').collect();
+        for comp in &comps[..comps.len() - 1] {
+            if !prefix.is_empty() {
+                prefix.push('/');
+            }
+            prefix.push_str(comp);
+            if !added.contains(&prefix) {
+                record(&mut out, ino, 0o040755, &prefix, &[]); // its a directory, no data 
+                ino += 1;
+                added.push(prefix.clone())
+            }
+        }
+        record(&mut out, ino, mode, path, data);
+        ino += 1;
+    }
+    record(&mut out, ino, 0, "TRAILER!!!", &[]); //EOF marker
+    out
 }
