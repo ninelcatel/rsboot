@@ -15,11 +15,28 @@ use environment::Env;
 
 use crate::loadbootable::boot_from_iso;
 
-const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
-const DEBIAN_URL: &str = "http://10.0.2.2:8000/arch.iso"; // QEMU's alias for host, translates to
-// localhost
-const RAMDISK_SUPPORTED: [&str; 4] = ["Debian", "Ubuntu", "Mint", "Fedora"];
-const MEMMAP_SUPPORTED: [&str; 4] = ["Arch Linux", "Artix Linux", "CachyOS", "BlackArch"];
+const OS: [environment::OS; 4] = [
+    environment::OS {
+        name: "Debian",
+        url: "http://10.0.2.2:8000/debian.iso",
+        boot_method: environment::BootMethod::RamDisk,
+    },
+    environment::OS {
+        name: "Arch Linux",
+        url: "http://10.0.2.2:8000/arch.iso",
+        boot_method: environment::BootMethod::Memmap,
+    },
+    environment::OS {
+        name: "Ubuntu",
+        url: "http://10.0.2.2:8000/ubuntu.iso",
+        boot_method: environment::BootMethod::RamDisk,
+    },
+    environment::OS {
+        name: "Fedora",
+        url: "http://10.0.2.2:8000/fedora.iso",
+        boot_method: environment::BootMethod::RamDisk,
+    },
+];
 
 #[entry]
 fn main() -> Status {
@@ -44,7 +61,9 @@ fn run() -> uefi::Result {
     system::with_stdout(|out| {
         let mut tui = draw::Tui::new(out);
         tui.clear_screen();
-        tui.draw_menu(current_pick, &OS, &env);
+
+        let names: [&str; OS.len()] = core::array::from_fn(|i| OS[i].name);
+        tui.draw_menu(current_pick, &names, &env);
 
         while running {
             let key = system::with_stdin(|input| {
@@ -62,7 +81,7 @@ fn run() -> uefi::Result {
                     let old = current_pick;
                     current_pick = current_pick.saturating_sub(1);
                     if current_pick != old {
-                        tui.update_selection(&OS, old, current_pick);
+                        tui.update_selection(&names, old, current_pick);
                     }
                     continue;
                 }
@@ -70,7 +89,7 @@ fn run() -> uefi::Result {
                     let old = current_pick;
                     if current_pick + 1 < OS.len() {
                         current_pick += 1;
-                        tui.update_selection(&OS, old, current_pick);
+                        tui.update_selection(&names, old, current_pick);
                     }
                     continue;
                 }
@@ -79,17 +98,9 @@ fn run() -> uefi::Result {
                     tui.clear_screen();
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
-                    let os = OS[current_pick];
-                    // memmap distros need direct kernel boot; the rest use the plain ramdisk
-                    // except Gentoo, NixOS and openSUSE
-                    let method = if MEMMAP_SUPPORTED.contains(&os) {
-                        environment::BootMethod::Memmap
-                    } else {
-                        environment::BootMethod::RamDisk
-                    };
-                    let _ = RAMDISK_SUPPORTED; // documented set; RamDisk is the default fallback
-                    let buffer = dl.get(DEBIAN_URL).unwrap();
-                    boot_from_iso(buffer, method).unwrap();
+                    let os = &OS[current_pick];
+                    let buffer = dl.get(os.url).unwrap();
+                    boot_from_iso(buffer, os.boot_method).unwrap();
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
@@ -97,7 +108,7 @@ fn run() -> uefi::Result {
                 _ => continue,
             }
 
-            tui.draw_menu(current_pick, &OS, &env);
+            tui.draw_menu(current_pick, &names, &env);
         }
     });
 
