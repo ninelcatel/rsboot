@@ -15,7 +15,7 @@ use environment::Env;
 
 use crate::loadbootable::boot_from_iso;
 
-const OS: [environment::OS; 4] = [
+const OS: [environment::OS; 5] = [
     environment::OS {
         name: "Debian",
         url: "http://10.0.2.2:8000/debian.iso",
@@ -35,6 +35,11 @@ const OS: [environment::OS; 4] = [
         name: "Fedora",
         url: "http://10.0.2.2:8000/fedora.iso",
         boot_method: environment::BootMethod::RamDisk,
+    },
+    environment::OS {
+        name: "CachyOS",
+        url: "http://10.0.2.2:8000/cachy.iso",
+        boot_method: environment::BootMethod::Memmap,
     },
 ];
 

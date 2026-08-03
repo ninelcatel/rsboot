@@ -31,7 +31,11 @@ const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148
 const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
 #[allow(dead_code)]
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
-const BOOT_FILE_ARCH: &uefi::CStr16 = uefi::cstr16!("\\loader\\entries\\01-archiso-linux.conf");
+// possible config locations for systemd/syslinux/isolinux boot
+const CONFIG_PATHS: [&uefi::CStr16; 2] = [
+    uefi::cstr16!("\\loader\\entries\\01-archiso-linux.conf"), // arch systemd-boot
+    uefi::cstr16!("\\boot\\syslinux\\archiso_sys-linux.cfg"),  // cachy syslinux
+];
 const RAM_DISK_DXE: &[u8] = include_bytes!("../assets/RamDiskDxe.efi");
 
 // implementing this for the protocol to succesfully Identify it and not have to add a separate
@@ -139,7 +143,7 @@ pub fn boot_from_iso(
     let fs_handle = fs_handle.ok_or_else(|| {
         log::error!("no EFI filesystem found on the iso");
         uefi::Status::NOT_FOUND
-    })?; // might fail from older iso images that don't have UEFI adaptation 
+    })?; // might fail from older iso images that don't have UEFI adaptation
 
     // build fs path + \EFI\BOOT\BOOTX64.EFI and load it
     let fs_devicepath =
@@ -173,7 +177,7 @@ pub fn boot_from_iso(
         }
         BootMethod::Memmap => {
             let (kernel, initrd, options) =
-                get_kic_paths(fs_handle, BOOT_FILE_ARCH).ok_or(uefi::Status::NOT_FOUND)?;
+                get_kic_paths(fs_handle).ok_or(uefi::Status::NOT_FOUND)?;
 
             // builder is currently holding the ROOT file system
             let full_path = builder
@@ -231,26 +235,39 @@ fn boot_kernel(
 // get_Kernel Initrd Cmdline_paths
 fn get_kic_paths(
     fs_handle: uefi::Handle,
-    path: &uefi::CStr16,
 ) -> Option<(uefi::CString16, uefi::CString16, uefi::CString16)> {
     let scoped_fs =
         uefi::boot::open_protocol_exclusive::<uefi::proto::media::fs::SimpleFileSystem>(fs_handle)
             .ok()?;
     let mut fs = uefi::fs::FileSystem::new(scoped_fs);
 
-    let config = fs.read(path).ok()?;
+    // try the known config locations; use the first that reads
+    let config = CONFIG_PATHS.iter().find_map(|p| fs.read(*p).ok())?;
     let text = core::str::from_utf8(&config).unwrap_or("");
     let (mut kernel, mut initrd, mut options) = (None, None, None);
 
     for line in text.lines() {
         let l = line.trim();
-        if let Some(s) = l.strip_prefix("linux ") {
+        if let Some(s) = l
+            .strip_prefix("linux ") // systemd boot config
+            .or_else(|| l.strip_prefix("LINUX ")) //syslinux boot config
+            .or_else(|| l.strip_prefix("KERNEL "))
+        // isolinux boot config
+        {
             kernel = Some(s.trim().replace('/', "\\"));
         }
-        if let Some(s) = l.strip_prefix("initrd ") {
+        if let Some(s) = l
+            .strip_prefix("initrd ") //systemd boot config
+            .or_else(|| l.strip_prefix("INITRD "))
+        //syslinux/isolinux  boot config
+        {
             initrd = Some(s.trim().replace('/', "\\"));
         }
-        if let Some(s) = l.strip_prefix("options ") {
+        if let Some(s) = l
+            .strip_prefix("options ") //systemd boot config
+            .or_else(|| l.strip_prefix("APPEND "))
+        // syslinux/isolinux boot config
+        {
             options = Some(s.trim());
         }
     }
