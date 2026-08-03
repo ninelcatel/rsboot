@@ -4,6 +4,8 @@
 
 use uefi::{Identify, boot::start_image};
 
+use crate::environment::{self, BootMethod};
+
 extern crate alloc;
 
 #[repr(C)]
@@ -50,10 +52,16 @@ pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
         log::error!("failed to read {path}, {e}");
         uefi::Status::LOAD_ERROR
     })?;
-    boot_from_iso(crate::downloader::IsoBuffer::from_bytes(&buffer)?)
+    boot_from_iso(
+        crate::downloader::IsoBuffer::from_bytes(&buffer)?,
+        BootMethod::Netboot,
+    )
 }
 
-pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
+pub fn boot_from_iso(
+    iso: crate::downloader::IsoBuffer,
+    boot_method: environment::BootMethod,
+) -> uefi::Result {
     let handler = uefi::boot::image_handle();
 
     // the iso is already allocated  so we only register those pages as virtual cd
@@ -143,31 +151,58 @@ pub fn boot_from_iso(iso: crate::downloader::IsoBuffer) -> uefi::Result {
         builder = builder.push(&node).unwrap();
     }
 
-    let (kernel, initrd, options) =
-        get_kic_paths(fs_handle, BOOT_FILE_ARCH).ok_or(uefi::Status::NOT_FOUND)?;
+    match boot_method {
+        BootMethod::RamDisk => {
+            let full_path = builder
+                .push(&uefi::proto::device_path::build::media::FilePath {
+                    path_name: BOOT_FILE,
+                })
+                .unwrap()
+                .finalize()
+                .unwrap(); // too lazy to treat these results
 
-    // builder is currently holding the ROOT file system
-    let full_path = builder
-        .push(&uefi::proto::device_path::build::media::FilePath { path_name: &kernel })
-        .unwrap()
-        .finalize()
-        .unwrap(); // too lazy to treat these results
+            let instance = uefi::boot::load_image(
+                handler,
+                uefi::boot::LoadImageSource::FromDevicePath {
+                    device_path: full_path,
+                    boot_policy: uefi::proto::BootPolicy::ExactMatch,
+                },
+            )?;
 
-    let instance = uefi::boot::load_image(
-        handler,
-        uefi::boot::LoadImageSource::FromDevicePath {
-            device_path: full_path,
-            boot_policy: uefi::proto::BootPolicy::ExactMatch,
-        },
-    )?;
+            start_image(instance)
+        }
+        BootMethod::Memmap => {
+            let (kernel, initrd, options) =
+                get_kic_paths(fs_handle, BOOT_FILE_ARCH).ok_or(uefi::Status::NOT_FOUND)?;
 
-    boot_kernel(
-        iso.mapped_len(),
-        iso.as_ptr() as usize,
-        instance,
-        &initrd,
-        &options,
-    )
+            // builder is currently holding the ROOT file system
+            let full_path = builder
+                .push(&uefi::proto::device_path::build::media::FilePath { path_name: &kernel })
+                .unwrap()
+                .finalize()
+                .unwrap(); // too lazy to treat these results
+
+            let instance = uefi::boot::load_image(
+                handler,
+                uefi::boot::LoadImageSource::FromDevicePath {
+                    device_path: full_path,
+                    boot_policy: uefi::proto::BootPolicy::ExactMatch,
+                },
+            )?;
+
+            boot_kernel(
+                iso.mapped_len(),
+                iso.as_ptr() as usize,
+                instance,
+                &initrd,
+                &options,
+            )
+        }
+        _ => {
+            log::error!("boot method not implemented yet");
+            Err(uefi::Status::UNSUPPORTED.into())
+        }
+    }
 }
 
 // helper function to add the boot options for the kernel

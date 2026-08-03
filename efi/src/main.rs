@@ -17,7 +17,9 @@ use crate::loadbootable::boot_from_iso;
 
 const OS: [&str; 4] = ["Debian", "Arch Linux", "Ubuntu", "Fedora"];
 const DEBIAN_URL: &str = "http://10.0.2.2:8000/arch.iso"; // QEMU's alias for host, translates to
-// localhost:8000
+// localhost
+const RAMDISK_SUPPORTED: [&str; 4] = ["Debian", "Ubuntu", "Mint", "Fedora"];
+const MEMMAP_SUPPORTED: [&str; 4] = ["Arch Linux", "Artix Linux", "CachyOS", "BlackArch"];
 
 #[entry]
 fn main() -> Status {
@@ -77,9 +79,17 @@ fn run() -> uefi::Result {
                     tui.clear_screen();
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
-                    // env = Env::Os;
+                    let os = OS[current_pick];
+                    // memmap distros need direct kernel boot; the rest use the plain ramdisk
+                    // except Gentoo, NixOS and openSUSE
+                    let method = if MEMMAP_SUPPORTED.contains(&os) {
+                        environment::BootMethod::Memmap
+                    } else {
+                        environment::BootMethod::RamDisk
+                    };
+                    let _ = RAMDISK_SUPPORTED; // documented set; RamDisk is the default fallback
                     let buffer = dl.get(DEBIAN_URL).unwrap();
-                    boot_from_iso(buffer).unwrap();
+                    boot_from_iso(buffer, method).unwrap();
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
