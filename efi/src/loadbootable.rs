@@ -220,7 +220,7 @@ pub fn boot_from_iso(
                 },
             )?;
 
-            install_initrd(&initrd)?;
+            install_initrd(initrd)?;
 
             let cmdline = uefi::CString16::try_from(options.as_str()).unwrap();
             unsafe {
@@ -257,7 +257,7 @@ pub fn boot_from_iso(
             )?;
 
             // serve the initrd to the EFI stub via LoadFile2, initrd_path in cmd doesnt work with ISO9660
-            install_initrd(&initrd_bytes)?;
+            install_initrd(initrd_bytes)?;
 
             // append memmap
             let cmdline: uefi::CString16 = uefi::CString16::try_from(
@@ -422,7 +422,7 @@ struct InitrdDevicePath {
 // install the LoadFile2 and InitrdDevicePath so kernel's efi stub  can pull the initrd from RAM, this is MANDATORY for
 // distributions that have their kernel/initrd on ISO9660 file system, if they are on EFI you can
 // just append initrd=<INITRD_PATH> to the cmdline
-fn install_initrd(initrd: &[u8]) -> uefi::Result {
+fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result {
     // both structs must outlive this call: the stub reads them during start_image,
     // so leak them on purpose
     let proto: *mut LoadFile2Protocol =
@@ -431,6 +431,7 @@ fn install_initrd(initrd: &[u8]) -> uefi::Result {
             data: initrd.as_ptr(),
             len: initrd.len(),
         }));
+    core::mem::forget(initrd);
     let dp: *mut InitrdDevicePath =
         alloc::boxed::Box::into_raw(alloc::boxed::Box::new(InitrdDevicePath {
             // MEDIA_DEVICE_PATH (0x04) / MEDIA_VENDOR_DP (0x03), length = 4 header + 16 guid

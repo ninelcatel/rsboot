@@ -18,7 +18,7 @@ use crate::loadbootable::boot_from_iso;
 const OS: [environment::OS; 6] = [
     environment::OS {
         name: "Debian",
-        url: "http://10.0.2.2:8000/debian.iso",
+        url: "http://ftp2.de.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u6/images/netboot/mini.iso",
         boot_method: environment::BootMethod::RamDisk,
     },
     environment::OS {

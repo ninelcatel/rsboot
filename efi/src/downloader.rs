@@ -9,7 +9,10 @@ const PAGE_ALLIGNER: usize = 2 << 10 << 10; // 2 MB
 pub struct IsoBuffer {
     base: core::ptr::NonNull<u8>,
     len: usize,
-    mapped: usize,
+    mapped: usize, // need this for the memmap bootmethod but also is a cleaner allocation in memory
+    cap: usize,
+    raw: core::ptr::NonNull<u8>,
+    pages: usize,
 }
 
 impl IsoBuffer {
@@ -24,7 +27,16 @@ impl IsoBuffer {
 
         let alligned = (raw.as_ptr() as usize).next_multiple_of(PAGE_ALLIGNER);
         let base = core::ptr::NonNull::new(alligned as *mut u8).unwrap();
-        Ok(Self { base, len, mapped })
+
+        let cap = pages * uefi::boot::PAGE_SIZE - (alligned - raw.as_ptr() as usize);
+        Ok(Self {
+            base,
+            len,
+            mapped,
+            cap,
+            raw,
+            pages,
+        })
     }
     // this is used for the load_bootable method, will be needded for OSs that ship via .efi even
     // though its not iso, example: arch, its bootloader doesnt have a certain kernel module which
@@ -36,14 +48,12 @@ impl IsoBuffer {
     }
 
     // copy  bytes into the buffer at offset
-    fn write(&self, offset: usize, bytes: &[u8]) {
+    fn write(&self, offset: usize, bytes: &[u8]) -> usize {
+        let n = bytes.len().min(self.cap.saturating_sub(offset));
         unsafe {
-            core::ptr::copy_nonoverlapping(
-                bytes.as_ptr(),
-                self.base.as_ptr().add(offset),
-                bytes.len(),
-            );
+            core::ptr::copy_nonoverlapping(bytes.as_ptr(), self.base.as_ptr().add(offset), n);
         }
+        n
     }
 
     pub fn as_ptr(&self) -> *mut u8 {
@@ -57,7 +67,13 @@ impl IsoBuffer {
         self.mapped
     }
 }
-
+impl Drop for IsoBuffer {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = uefi::boot::free_pages(self.raw, self.pages);
+        }
+    }
+}
 pub struct Downloader {
     http: uefi::proto::network::http::HttpHelper,
 }
@@ -75,27 +91,24 @@ impl Downloader {
     pub fn get(&mut self, url: &str) -> uefi::Result<IsoBuffer> {
         self.http.request_get(url)?;
         let first = self.http.response_first(true)?;
-
+        //translates to if http resp status != http 200
+        if first.status.0 != 3 {
+            return Err(uefi::Status::PROTOCOL_ERROR.into());
+        };
         // we need Content-Length to size the buffer and know when its done
-        let mut len = 0;
+        let mut len = None;
         for (key, val) in &first.headers {
             if key.eq_ignore_ascii_case("content-length") {
-                len = val.parse::<usize>().unwrap_or(0);
+                len = val.trim().parse().ok();
                 break;
             }
         }
 
+        let len = len.ok_or(uefi::Status::UNSUPPORTED)?;
         let iso = IsoBuffer::new(len)?;
-        /*
-        let lenn = iso.mapped_len();
-        let ptrr = iso.as_ptr() as usize;
-
-        with_stdout(|out| out.write_fmt(format_args!("{lenn:#x}|{ptrr:#x}\r\n"))).ok();
-        */
 
         // the first response might have more than the headers, so append to the buffer
-        let mut written = first.body.len();
-        iso.write(0, &first.body);
+        let mut written = iso.write(0, &first.body);
 
         // mutable vector that holds the http payload and is cleared every loop (max 16KB per loop)
         // in order to prevent OOM panics
@@ -106,10 +119,16 @@ impl Downloader {
             if chunk.is_empty() {
                 break;
             }
-            iso.write(written, chunk);
-            written += chunk.len();
+            let n = iso.write(written, chunk);
+            written += n;
+            if n != chunk.len() {
+                // should prevent overflowing
+                return Err(uefi::Status::BUFFER_TOO_SMALL.into());
+            }
         }
-
+        if written < len {
+            return Err(uefi::Status::NOT_READY.into());
+        }
         Ok(iso)
     }
 }
