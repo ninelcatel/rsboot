@@ -37,14 +37,61 @@ impl<'a> Tui<'a> {
             }
             environment::Env::Os => {
                 if let Some(&item) = items.get(selected) {
-                    self.out.set_color(Color::Magenta, RECT).ok();
-
-                    self.center_line(item, 0);
-
-                    self.out.write_fmt(format_args!("{}", item)).ok();
+                    self.draw_variants(item);
                 }
             }
         }
+    }
+
+    // menu screen for choosing OS version/type(netinst, full, chosenDE,etc)
+    fn draw_variants(&mut self, name: &str) {
+        self.out.set_color(Color::Magenta, RECT).ok();
+        self.center(name.len(), self.rows / 3);
+        self.out.write_fmt(format_args!("{name}")).ok();
+    }
+
+    // new render, rectangle for downloading screen
+    pub fn begin_download(&mut self, name: &str) {
+        self.draw_rect();
+        self.draw_title();
+
+        self.out.set_color(Color::Magenta, RECT).ok();
+        let line_len = "Downloading ".len() + name.len() + "...".len();
+        self.center(line_len, self.rows / 3);
+        self.out
+            .write_fmt(format_args!("Downloading {name}..."))
+            .ok();
+    }
+
+    // repaints the progress bar
+    pub fn draw_progress(&mut self, written: usize, total: usize) {
+        const BAR: usize = 40;
+        let pct = (written * 100).checked_div(total).unwrap_or(0);
+        let filled = BAR * pct / 100;
+
+        let width = BAR + 2 + 5;
+        let row = self.rows / 2;
+
+        self.out.set_color(Color::Green, RECT).ok();
+        self.center(width, row);
+        self.out.write_fmt(format_args!("[")).ok();
+        for i in 0..BAR {
+            let c = if i < filled { '#' } else { '-' };
+            self.out.write_fmt(format_args!("{c}")).ok();
+        }
+        self.out.write_fmt(format_args!("] {pct:>3}%")).ok();
+
+        const MIB: usize = 1024 * 1024;
+        const CNT_LEN: usize = 19; // "NNNNNN / NNNNNN MiB"
+        self.out.set_color(Color::Black, RECT).ok();
+        self.center(CNT_LEN, row + 1);
+        self.out
+            .write_fmt(format_args!(
+                "{:>6} / {:>6} MiB",
+                written / MIB,
+                total / MIB
+            ))
+            .ok();
     }
 
     fn draw_item(&mut self, items: &[&str], i: usize, selected: usize) {
@@ -54,8 +101,8 @@ impl<'a> Tui<'a> {
         } else {
             self.out.set_color(Color::Black, RECT).ok();
         }
-        self.center_line(item, i);
-        self.out.write_fmt(format_args!("{}", item)).ok();
+        self.center(item.len(), self.rows / 3 + i);
+        self.out.write_fmt(format_args!("{item}")).ok();
     }
 
     // helper function to overwrite only the 2 affected selections
@@ -100,10 +147,9 @@ impl<'a> Tui<'a> {
         self.out.write_fmt(format_args!("{SUBTITLE}")).ok();
     }
 
-    fn center_line(&mut self, text: &str, row_index: usize) {
-        let col = self.cols.saturating_sub(text.len()) / 2;
-        let row = self.rows / 3;
-        self.out.set_cursor_position(col, row + row_index).ok();
+    fn center(&mut self, len: usize, row: usize) {
+        let col = self.cols.saturating_sub(len) / 2;
+        self.out.set_cursor_position(col, row).ok();
     }
 
     fn draw_rect(&mut self) {

@@ -75,7 +75,7 @@ impl Drop for IsoBuffer {
     }
 }
 pub struct Downloader {
-    http: uefi::proto::network::http::HttpHelper,
+    nic: uefi::Handle,
 }
 
 impl Downloader {
@@ -83,14 +83,21 @@ impl Downloader {
         let nic = uefi::boot::get_handle_for_protocol::<uefi::proto::network::http::HttpBinding>()?;
         let mut ip = uefi::proto::network::ip4config2::Ip4Config2::new(nic)?;
         ip.ifup()?;
-        let mut http = uefi::proto::network::http::HttpHelper::new(nic)?;
-        http.configure()?;
-        Ok(Self { http })
+        Ok(Self { nic })
     }
 
-    pub fn get(&mut self, url: &str) -> uefi::Result<IsoBuffer> {
-        self.http.request_get(url)?;
-        let first = self.http.response_first(true)?;
+    pub fn get(
+        &self,
+        url: &str,
+        mut in_progress: impl FnMut(usize, usize) -> bool,
+    ) -> uefi::Result<IsoBuffer> {
+        // one httphelper instance per download, dropped when this fn returs in order to not get
+        // Status::TIMEOUT err when restablishing TCP coneciton
+        let mut http = uefi::proto::network::http::HttpHelper::new(self.nic)?;
+        http.configure()?;
+
+        http.request_get(url)?;
+        let first = http.response_first(true)?;
         //translates to if http resp status != http 200
         if first.status.0 != 3 {
             return Err(uefi::Status::PROTOCOL_ERROR.into());
@@ -109,13 +116,16 @@ impl Downloader {
 
         // the first response might have more than the headers, so append to the buffer
         let mut written = iso.write(0, &first.body);
+        if !in_progress(written, len) {
+            return Err(uefi::Status::ABORTED.into());
+        }
 
         // mutable vector that holds the http payload and is cleared every loop (max 16KB per loop)
         // in order to prevent OOM panics
         let mut data = alloc::vec::Vec::new();
         while written < len {
             data.clear();
-            let chunk = self.http.response_more(&mut data)?;
+            let chunk = http.response_more(&mut data)?;
             if chunk.is_empty() {
                 break;
             }
@@ -124,6 +134,9 @@ impl Downloader {
             if n != chunk.len() {
                 // should prevent overflowing
                 return Err(uefi::Status::BUFFER_TOO_SMALL.into());
+            }
+            if !in_progress(written, len) {
+                return Err(uefi::Status::ABORTED.into());
             }
         }
         if written < len {

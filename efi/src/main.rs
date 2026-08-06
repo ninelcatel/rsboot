@@ -59,7 +59,7 @@ fn run() -> uefi::Result {
     uefi::helpers::init()?;
     log::set_max_level(log::LevelFilter::Info); // without this, it adds unnecessarry buffering and
     // downloads REALLY slow
-    let mut dl = downloader::Downloader::connect()?;
+    let dl = downloader::Downloader::connect()?;
 
     let mut running: bool = true;
 
@@ -108,12 +108,38 @@ fn run() -> uefi::Result {
                     tui.clear_screen();
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
+                    // enter the version picker menu for cufrent os
+                    env = Env::Os;
+                    tui.clear_screen();
+                }
+                (Env::Os, Key::Printable(c)) if c == enter => {
                     let os = &OS[current_pick];
-                    let buffer = dl.get(os.url).unwrap();
-                    boot_from_iso(buffer, os.boot_method).unwrap();
+                    tui.clear_screen();
+                    tui.begin_download(os.name);
+                    let mut last = usize::MAX;
+                    let result = dl.get(os.url, |written, total| {
+                        let pct = (written * 100).checked_div(total).unwrap_or(0);
+                        if pct != last {
+                            last = pct;
+                            tui.draw_progress(written, total);
+                        }
+                        // aborts download
+                        let key = system::with_stdin(|input| input.read_key());
+                        !matches!(key, Ok(Some(Key::Special(ScanCode::ESCAPE))))
+                    });
+                    match result {
+                        Ok(buffer) => boot_from_iso(buffer, os.boot_method).unwrap(),
+                        // esc pressed mid-download: iso already freed, back to the menu
+                        Err(e) if e.status() == Status::ABORTED => {
+                            env = Env::Menu;
+                            tui.clear_screen();
+                        }
+                        Err(e) => panic!("download failed: {:?}", e.status()),
+                    }
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
+                    tui.clear_screen();
                 }
                 _ => continue,
             }
