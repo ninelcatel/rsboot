@@ -15,7 +15,7 @@ use environment::Env;
 
 use crate::loadbootable::boot_from_iso;
 
-const OS: [environment::OS; 6] = [
+const OS: [environment::OS; 7] = [
     environment::OS {
         name: "Debian",
         url: "http://ftp2.de.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u6/images/netboot/mini.iso",
@@ -45,6 +45,11 @@ const OS: [environment::OS; 6] = [
         name: "Gentoo",
         url: "http://10.0.2.2:8000/gentoo_gui.iso",
         boot_method: environment::BootMethod::LoopInjection,
+    },
+    environment::OS {
+        name: "NixOS",
+        url: "http://10.0.2.2:8000/nixos.efi",
+        boot_method: environment::BootMethod::Netboot,
     },
 ];
 

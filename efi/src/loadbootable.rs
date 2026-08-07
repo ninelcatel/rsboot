@@ -5,6 +5,7 @@
 use uefi::{
     Identify,
     boot::{load_image, start_image},
+    proto::loaded_image,
 };
 
 use crate::{
@@ -82,6 +83,22 @@ pub fn boot_from_iso(
     boot_method: environment::BootMethod,
 ) -> uefi::Result {
     let handler = uefi::boot::image_handle();
+
+    /*
+    TODO: refactor this method, netboot methods panic on finding the filesystem
+    also it hurts the eyes its horrid
+
+    let image = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+    let instance = load_image(
+        handler,
+        uefi::boot::LoadImageSource::FromBuffer {
+            buffer: image,
+            file_path: None,
+        },
+    )?;
+    if let Ok(sth) = start_image(instance) {
+        return Ok(());
+    } */
 
     // the iso is already allocated  so we only register those pages as virtual cd
     let base = iso.as_ptr() as u64;
@@ -277,10 +294,20 @@ pub fn boot_from_iso(
             }
             start_image(instance)
         }
-        _ => {
-            log::error!("boot method not implemented yet");
-            Err(uefi::Status::UNSUPPORTED.into())
-        }
+        BootMethod::Netboot => {
+            let image = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+            let instance = load_image(
+                handler,
+                uefi::boot::LoadImageSource::FromBuffer {
+                    buffer: image,
+                    file_path: None,
+                },
+            )?;
+            start_image(instance)
+        } /* _ => {
+              log::error!("boot method not implemented yet");
+              Err(uefi::Status::UNSUPPORTED.into())
+          }*/
     }
 }
 
