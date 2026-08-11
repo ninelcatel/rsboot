@@ -15,7 +15,7 @@ use environment::Env;
 
 use crate::loadbootable::boot_from_iso;
 
-const OS: [environment::OS; 7] = [
+const OS: [environment::OS; 9] = [
     environment::OS {
         name: "Debian",
         url: "http://ftp2.de.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u6/images/netboot/mini.iso",
@@ -50,6 +50,16 @@ const OS: [environment::OS; 7] = [
         name: "NixOS",
         url: "http://10.0.2.2:8000/nixos.efi",
         boot_method: environment::BootMethod::Netboot,
+    },
+    environment::OS {
+        name: "Artix",
+        url: "http://10.0.2.2:8000/artix.iso",
+        boot_method: environment::BootMethod::Memmap,
+    },
+    environment::OS {
+        name: "openSUSE",
+        url: "http://10.0.2.2:8000/opensuse.iso",
+        boot_method: environment::BootMethod::Memmap,
     },
 ];
 
