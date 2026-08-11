@@ -4,7 +4,7 @@
 
 use uefi::{
     Identify,
-    boot::{load_image, start_image},
+    boot::{ScopedProtocol, load_image, start_image},
 };
 
 use crate::{
@@ -84,132 +84,20 @@ pub fn boot_from_iso(
 ) -> uefi::Result {
     let handler = uefi::boot::image_handle();
 
-    /*
-    TODO: refactor this method, netboot methods panic on finding the filesystem
-    also it hurts the eyes its horrid
-
-    let image = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
-    let instance = load_image(
-        handler,
-        uefi::boot::LoadImageSource::FromBuffer {
-            buffer: image,
-            file_path: None,
-        },
-    )?;
-    if let Ok(sth) = start_image(instance) {
-        return Ok(());
-    } */
-
-    // the iso is already allocated  so we only register those pages as virtual cd
-    let base = iso.as_ptr() as u64;
-    let size = iso.len() as u64;
-
     match boot_method {
         BootMethod::RamDisk => {
-            // locate the ram disk protocol by its guid, then open it to call register
-            let mut ramdisk_handlers = uefi::boot::locate_handle_buffer(
-                uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID),
-            );
-            if ramdisk_handlers.is_err() {
-                let ram_disk_dxe_instance = uefi::boot::load_image(
-                    handler,
-                    uefi::boot::LoadImageSource::FromBuffer {
-                        buffer: RAM_DISK_DXE,
-                        file_path: None,
-                    },
-                )?;
-                uefi::boot::start_image(ram_disk_dxe_instance)?;
-                ramdisk_handlers = uefi::boot::locate_handle_buffer(
-                    uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID),
-                );
-            }
+            // the iso is already allocated, so we only register those pages as a virtual cd,
+            // then find FAT fs and load its bootloader
+            let base = iso.as_ptr() as u64;
+            let size = iso.len() as u64;
 
-            let ramdisk_handle = *ramdisk_handlers?.first().ok_or(uefi::Status::NOT_FOUND)?; // .first() to get the
-            // ramdisk protocol handle is installed only once in the uefi system therefore .first() is
-            // enough and we dont need to iterate through it
+            let ramdisk_handle = locate_ramdisk(handler)?;
             let ram_disk =
                 uefi::boot::open_protocol_exclusive::<EFI_RAM_DISK_PROTOCOL>(ramdisk_handle)?;
 
-            let mut ram_devicepath_ptr: *const EFI_DEVICE_PATH = core::ptr::null();
-            let status = unsafe {
-                (ram_disk.register)(
-                    base,
-                    size,
-                    &VIRTUAL_CD_GUID,  // we register the type as a virtual CD
-                    core::ptr::null(), // optional in the edk2 definition
-                    &mut ram_devicepath_ptr, // output address to UEFI device path definition, needed for
-                                             // locating the filesystem via other protocols
-                )
-            };
-            if !status.is_success() {
-                log::error!("ram disk protocol register failed: {status}");
-                return Err(status.into());
-            }
-            let ram_devicepath = unsafe {
-                uefi::proto::device_path::DevicePath::from_ffi_ptr(ram_devicepath_ptr.cast())
-            };
-
-            // use the firmware to enumerate the FAT ESP inside the iso
-            let mut remaining = ram_devicepath;
-            if let Ok(disk_handle) =
-                uefi::boot::locate_device_path::<uefi::proto::media::block::BlockIO>(&mut remaining)
-            {
-                uefi::boot::connect_controller(disk_handle, &[], None, true)?;
-            }
-
-            // find the filesystem that lives on the ram disk
-            let ram_bytes = ram_devicepath.as_bytes();
-            let prefix = &ram_bytes[..ram_bytes.len().saturating_sub(4)];
-            //slice containing all the bytes except last 4 , last 4 bytes are just marking the end making it
-            // impossible to find the actual filesystem handle (it queries STARTS_WITH)
-
-            let handles_found = uefi::boot::locate_handle_buffer(
-                uefi::boot::SearchType::ByProtocol(&uefi::proto::media::fs::SimpleFileSystem::GUID),
-            )?;
-            let mut fs_handle = None;
-            for &h in handles_found.iter() {
-                if let Ok(dp) =
-                    uefi::boot::open_protocol_exclusive::<uefi::proto::device_path::DevicePath>(h)
-                    && dp.as_bytes().starts_with(prefix)
-                // most likely we have  multiple file systems, use
-                // the handler found that coincides with the iso device path
-                {
-                    fs_handle = Some(h);
-                    break;
-                }
-            }
-            let fs_handle = fs_handle.ok_or_else(|| {
-                log::error!("no EFI filesystem found on the iso");
-                uefi::Status::NOT_FOUND
-            })?; // might fail from older iso images that don't have UEFI adaptation
-
-            // build fs path + \EFI\BOOT\BOOTX64.EFI and load it
-            let fs_devicepath = uefi::boot::open_protocol_exclusive::<
-                uefi::proto::device_path::DevicePath,
-            >(fs_handle)?;
-            let mut buf = alloc::vec::Vec::new();
-            let mut builder =
-                uefi::proto::device_path::build::DevicePathBuilder::with_vec(&mut buf);
-
-            for node in fs_devicepath.node_iter() {
-                builder = builder.push(&node).unwrap();
-            }
-
-            let full_path = builder
-                .push(&uefi::proto::device_path::build::media::FilePath {
-                    path_name: BOOT_FILE,
-                })
-                .unwrap()
-                .finalize()
-                .unwrap(); // too lazy to treat these results
-
-            let instance = uefi::boot::load_image(
-                handler,
-                uefi::boot::LoadImageSource::FromDevicePath {
-                    device_path: full_path,
-                    boot_policy: uefi::proto::BootPolicy::ExactMatch,
-                },
-            )?;
+            let ram_devicepath = register_virtual_cd(&ram_disk, base, size)?;
+            let fs_handle = find_fat_fs(ram_devicepath)?;
+            let instance = load_boot_file(fs_handle, handler)?;
 
             start_image(instance)
         }
@@ -228,7 +116,7 @@ pub fn boot_from_iso(
             let cmdline = match boot_method {
                 BootMethod::LoopInjection => {
                     // add cpio as new initramfs segment
-                    let iso_bytes = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+                    let iso_bytes = iso.as_slice();
                     while !initrd.len().is_multiple_of(4) {
                         initrd.push(0);
                     }
@@ -246,13 +134,7 @@ pub fn boot_from_iso(
                 _ => unreachable!("this block reaches only  memmap or loop injection"),
             };
 
-            let instance = load_image(
-                handler,
-                uefi::boot::LoadImageSource::FromBuffer {
-                    buffer: &kernel_bytes,
-                    file_path: None,
-                },
-            )?;
+            let instance = load_from_buffer(handler, &kernel_bytes)?;
             install_initrd(initrd)?;
 
             let cmdline = uefi::CString16::try_from(cmdline.as_str()).unwrap();
@@ -265,20 +147,22 @@ pub fn boot_from_iso(
             start_image(instance)
         }
         BootMethod::Netboot => {
-            let image = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
-            let instance = load_image(
-                handler,
-                uefi::boot::LoadImageSource::FromBuffer {
-                    buffer: image,
-                    file_path: None,
-                },
-            )?;
+            let image = iso.as_slice();
+            let instance = load_from_buffer(handler, image)?;
             start_image(instance)
-        } /* _ => {
-              log::error!("boot method not implemented yet");
-              Err(uefi::Status::UNSUPPORTED.into())
-          }*/
+        }
     }
+}
+
+// load a PE/EFI image already sitting in RAM and return its handle, ready to start
+fn load_from_buffer(parent: uefi::Handle, buffer: &[u8]) -> uefi::Result<uefi::Handle> {
+    load_image(
+        parent,
+        uefi::boot::LoadImageSource::FromBuffer {
+            buffer,
+            file_path: None,
+        },
+    )
 }
 
 // returns paths as Strings, stopped returning CStr16 due to the new ISO9660 parser using String
@@ -336,7 +220,7 @@ fn parse_config(
 
 fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8>> {
     // wrap the in-RAM iso bytes as a Read+Seek source for hadris-iso
-    let bytes = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+    let bytes = iso.as_slice();
     let cursor = hadris_io::Cursor::new(bytes);
 
     let img = hadris_iso::sync::IsoImage::open(cursor).ok()?;
@@ -517,4 +401,118 @@ fn build_cpio(files: &[(&str, &[u8], u32)]) -> alloc::vec::Vec<u8> {
     }
     record(&mut out, ino, 0, "TRAILER!!!", &[]); //EOF marker
     out
+}
+
+fn locate_ramdisk(handler: uefi::Handle) -> uefi::Result<uefi::Handle> {
+    // locate the ram disk protocol by its guid, then open it to call register
+    let mut ramdisk_handlers =
+        uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID));
+    if ramdisk_handlers.is_err() {
+        let ram_disk_dxe_instance = load_from_buffer(handler, RAM_DISK_DXE)?;
+        uefi::boot::start_image(ram_disk_dxe_instance)?;
+        ramdisk_handlers =
+            uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(&RAM_DISK_GUID));
+    }
+
+    // the ramdisk protocol handle is installed only once in the uefi system, so
+    // .first() is enough and we dont need to iterate through the buffer
+    let ramdisk_handle = *ramdisk_handlers?.first().ok_or(uefi::Status::NOT_FOUND)?;
+    Ok(ramdisk_handle)
+}
+
+// register the iso pages as a virtual cd and return its device path
+// maybe call unregister on fail
+fn register_virtual_cd(
+    ram_disk: &ScopedProtocol<EFI_RAM_DISK_PROTOCOL>,
+    base: u64,
+    size: u64,
+) -> uefi::Result<&'static uefi::proto::device_path::DevicePath> {
+    let mut ram_devicepath_ptr: *const EFI_DEVICE_PATH = core::ptr::null();
+    let status = unsafe {
+        (ram_disk.register)(
+            base,
+            size,
+            &VIRTUAL_CD_GUID,  // we register the type as a virtual CD
+            core::ptr::null(), // optional in the edk2 definition
+            &mut ram_devicepath_ptr, // output address to UEFI device path definition, needed for
+                               // locating the filesystem via other protocols
+        )
+    };
+
+    if !status.is_success() {
+        log::error!("ram disk protocol register failed: {status}");
+        return Err(status.into());
+    }
+
+    Ok(unsafe { uefi::proto::device_path::DevicePath::from_ffi_ptr(ram_devicepath_ptr.cast()) })
+}
+
+fn find_fat_fs(
+    ram_devicepath: &uefi::proto::device_path::DevicePath,
+) -> uefi::Result<uefi::Handle> {
+    let mut remaining = ram_devicepath;
+    if let Ok(disk_handle) =
+        uefi::boot::locate_device_path::<uefi::proto::media::block::BlockIO>(&mut remaining)
+    {
+        uefi::boot::connect_controller(disk_handle, &[], None, true)?;
+    }
+
+    // find the filesystem that lives on the ram disk
+    let ram_bytes = ram_devicepath.as_bytes();
+    let prefix = &ram_bytes[..ram_bytes.len().saturating_sub(4)];
+    //slice containing all the bytes except last 4 , last 4 bytes are just marking the end making it
+    // impossible to find the actual filesystem handle (it queries STARTS_WITH)
+
+    let handles_found = uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(
+        &uefi::proto::media::fs::SimpleFileSystem::GUID,
+    ))?;
+    let mut fs_handle = None;
+    for &h in handles_found.iter() {
+        if let Ok(dp) =
+            uefi::boot::open_protocol_exclusive::<uefi::proto::device_path::DevicePath>(h)
+            && dp.as_bytes().starts_with(prefix)
+        // most likely we have  multiple file systems, use
+        // the handler found that coincides with the iso device path
+        {
+            fs_handle = Some(h);
+            break;
+        }
+    }
+    let fs_handle = fs_handle.ok_or_else(|| {
+        log::error!("no EFI filesystem found on the iso");
+        uefi::Status::NOT_FOUND
+    })?; // might fail from older iso images that don't have UEFI adaptation
+    Ok(fs_handle)
+}
+
+// build <fs>\EFI\BOOT\BOOTX64.EFI
+fn load_boot_file(
+    fs_handle: uefi::Handle,
+    parent_image: uefi::Handle,
+) -> uefi::Result<uefi::Handle> {
+    let fs_devicepath =
+        uefi::boot::open_protocol_exclusive::<uefi::proto::device_path::DevicePath>(fs_handle)?;
+    let mut buf = alloc::vec::Vec::new();
+    let mut builder = uefi::proto::device_path::build::DevicePathBuilder::with_vec(&mut buf);
+
+    for node in fs_devicepath.node_iter() {
+        builder = builder.push(&node).unwrap();
+    }
+
+    let full_path = builder
+        .push(&uefi::proto::device_path::build::media::FilePath {
+            path_name: BOOT_FILE,
+        })
+        .unwrap()
+        .finalize()
+        .unwrap(); // too lazy to treat these results
+
+    let instance = uefi::boot::load_image(
+        parent_image,
+        uefi::boot::LoadImageSource::FromDevicePath {
+            device_path: full_path,
+            boot_policy: uefi::proto::BootPolicy::ExactMatch,
+        },
+    )?;
+    Ok(instance)
 }

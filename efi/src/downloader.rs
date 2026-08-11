@@ -60,6 +60,11 @@ impl IsoBuffer {
         self.base.as_ptr()
     }
 
+    //helper func for everytime i need the iso bytes
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(self.as_ptr(), self.len()) }
+    }
+
     pub fn len(&self) -> usize {
         self.len
     }
