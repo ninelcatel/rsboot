@@ -213,7 +213,9 @@ pub fn boot_from_iso(
 
             start_image(instance)
         }
-        BootMethod::LoopInjection => {
+        //same kernel + initrd from the ISO logic.
+        // only initrd and cmdline differs
+        BootMethod::Memmap | BootMethod::LoopInjection => {
             let cfg = CONFIGS
                 .iter()
                 .find_map(|p| read_iso(&iso, p))
@@ -223,75 +225,37 @@ pub fn boot_from_iso(
             let kernel_bytes = read_iso(&iso, &kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
             let mut initrd = read_iso(&iso, &initrd_path).ok_or(uefi::Status::NOT_FOUND)?;
 
-            let iso_bytes = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
-
-            // append our cpio as a new initramfs segment: the whole ISO (/rsboot.iso)
-            // plus the losetup hook. needs to be alligned first
-            while !initrd.len().is_multiple_of(4) {
-                initrd.push(0);
-            }
-            initrd.extend_from_slice(&build_cpio(&[
-                ("rsboot.iso", iso_bytes, 0o100644), // 100 - regular file 644 - chmod permissions
-                (HOOK_PATH, GENTOO_HOOK.as_bytes(), 0o100755), // 100 755 - chmod permisions
-            ]));
-
-            let instance = load_image(
-                handler,
-                uefi::boot::LoadImageSource::FromBuffer {
-                    buffer: &kernel_bytes,
-                    file_path: None,
-                },
-            )?;
-
-            install_initrd(initrd)?;
-
-            let cmdline = uefi::CString16::try_from(options.as_str()).unwrap();
-            unsafe {
-                let mut loaded_image = uefi::boot::open_protocol_exclusive::<
-                    uefi::proto::loaded_image::LoadedImage,
-                >(instance)?;
-                loaded_image.set_load_options(cmdline.as_ptr().cast(), cmdline.num_bytes() as u32);
-            }
-
-            start_image(instance)
-        }
-
-        BootMethod::Memmap => {
-            // read + parse the boot config  try the known config locations in order
-
-            let cfg = CONFIGS
-                .iter()
-                .find_map(|p| read_iso(&iso, p))
-                .ok_or(uefi::Status::NOT_FOUND)?;
-            let (kernel_path, initrd_path, options) =
-                parse_config(cfg).ok_or(uefi::Status::NOT_FOUND)?;
-
-            // pull the kernel + initrd bytes from the  iso buffer
-            let kernel_bytes = read_iso(&iso, &kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
-            let initrd_bytes = read_iso(&iso, &initrd_path).ok_or(uefi::Status::NOT_FOUND)?;
-
-            // load the kernel from its bytes
-            let instance = load_image(
-                handler,
-                uefi::boot::LoadImageSource::FromBuffer {
-                    buffer: &kernel_bytes,
-                    file_path: None,
-                },
-            )?;
-
-            // serve the initrd to the EFI stub via LoadFile2, initrd_path in cmd doesnt work with ISO9660
-            install_initrd(initrd_bytes)?;
-
-            // append memmap
-            let cmdline: uefi::CString16 = uefi::CString16::try_from(
-                alloc::format!(
+            let cmdline = match boot_method {
+                BootMethod::LoopInjection => {
+                    // add cpio as new initramfs segment
+                    let iso_bytes = unsafe { core::slice::from_raw_parts(iso.as_ptr(), iso.len()) };
+                    while !initrd.len().is_multiple_of(4) {
+                        initrd.push(0);
+                    }
+                    initrd.extend_from_slice(&build_cpio(&[
+                        ("rsboot.iso", iso_bytes, 0o100644), // 100 - regular file 644 - chmod permissions
+                        (HOOK_PATH, GENTOO_HOOK.as_bytes(), 0o100755), // 100 755 - chmod permisions
+                    ]));
+                    options
+                }
+                BootMethod::Memmap => alloc::format!(
                     "{options} memmap={:#x}!{:#x}",
                     iso.mapped_len(),
                     iso.as_ptr() as usize,
-                )
-                .as_str(),
-            )
-            .unwrap();
+                ),
+                _ => unreachable!("this block reaches only  memmap or loop injection"),
+            };
+
+            let instance = load_image(
+                handler,
+                uefi::boot::LoadImageSource::FromBuffer {
+                    buffer: &kernel_bytes,
+                    file_path: None,
+                },
+            )?;
+            install_initrd(initrd)?;
+
+            let cmdline = uefi::CString16::try_from(cmdline.as_str()).unwrap();
             unsafe {
                 let mut loaded_image = uefi::boot::open_protocol_exclusive::<
                     uefi::proto::loaded_image::LoadedImage,
