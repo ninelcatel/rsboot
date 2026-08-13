@@ -1,6 +1,6 @@
 use core::fmt::Write;
 use uefi::{
-    proto::console::text::{Color, Output},
+    proto::console::text::{Color, Key, Output},
     system::with_stdin,
 };
 
@@ -179,18 +179,20 @@ impl<'a> Tui<'a> {
         self.out.write_fmt(format_args!("{msg}")).ok();
     }
 
-    pub fn show_error(&mut self, status: uefi::Status) {
+    // draws the error, blocks for a key, and returns which key was pressed (so callers
+    // like the DHCP screen can treat ESC specially)
+    pub fn show_error(&mut self, status: uefi::Status) -> Option<Key> {
         self.draw_rect();
         self.draw_title();
         self.out.set_color(Color::Red, RECT).ok();
-        let msg = "action failed, press any key to get back to the menu";
+        let msg = "action failed, press a key to continue (ESC quits)";
         self.center(msg.len(), self.rows / 3);
         self.out.write_fmt(format_args!("{msg}: {status:?}")).ok();
         with_stdin(|input| {
             if let Ok(event) = input.wait_for_key_event() {
                 let _ = uefi::boot::wait_for_event(&mut [event]);
             }
-            let _ = input.read_key();
+            input.read_key().ok().flatten()
         })
     }
 }

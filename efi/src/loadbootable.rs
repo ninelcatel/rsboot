@@ -116,6 +116,7 @@ fn load_from_buffer(parent: uefi::Handle, buffer: &[u8]) -> uefi::Result<uefi::H
     )
 }
 
+
 // returns paths as Strings, stopped returning CStr16 due to the new ISO9660 parser using String
 fn parse_config(config: alloc::vec::Vec<u8>) -> Option<BootConfig> {
     use alloc::string::ToString;

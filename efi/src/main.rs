@@ -92,7 +92,16 @@ fn run() -> uefi::Result {
             tui.begin_dhcp();
             match downloader::Downloader::connect() {
                 Ok(dl) => break dl,
-                Err(e) => tui.show_error(e.status()),
+                // ESC on the DHCP error screen quits
+                Err(e) => {
+                    if matches!(
+                        tui.show_error(e.status()),
+                        Some(Key::Special(ScanCode::ESCAPE))
+                    ) {
+                        tui.clear_screen();
+                        return;
+                    }
+                }
             }
         };
 
