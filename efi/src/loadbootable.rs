@@ -9,40 +9,14 @@ use uefi::{
 
 use crate::{
     downloader::IsoBuffer,
-    environment::{self, BootMethod},
+    environment::{self, BootConfig, BootMethod},
+    handlers::*,
 };
 
 extern crate alloc;
 
-#[repr(C)]
-struct EFI_DEVICE_PATH {
-    r#type: u8, // media device path : example 0x01 = Hardware, 0x02 = ACPI
-    sub_type: u8,
-    length: [u8; 2], // total bytes, header + payload, LITTLE ENDIAN
-}
-
-#[repr(C)]
-struct EFI_RAM_DISK_PROTOCOL {
-    register: unsafe extern "efiapi" fn(
-        ram_disk_base: u64,
-        ram_disk_size: u64,
-        ram_disk_type: *const uefi::Guid,
-        parent_device_path: *const EFI_DEVICE_PATH,
-        device_path: *mut *const EFI_DEVICE_PATH,
-    ) -> uefi::Status,
-    unregister: unsafe extern "efiapi" fn(device_path: *const EFI_DEVICE_PATH) -> uefi::Status,
-}
-
-const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
-const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
-
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
 const RAM_DISK_DXE: &[u8] = include_bytes!("../assets/RamDiskDxe.efi");
-
-// EFI_LOAD_FILE2_PROTOCOL guid + the vendor guid the kernel's EFI stub looks up for its initrd
-const LOAD_FILE2_GUID: uefi::Guid = uefi::guid!("4006c0c1-fcb3-403e-996d-4a6c8724e06d");
-const DEVICE_PATH_GUID: uefi::Guid = uefi::guid!("09576e91-6d3f-11d2-8e39-00a0c969723b");
-const LINUX_EFI_INITRD_MEDIA_GUID: uefi::Guid = uefi::guid!("5568e427-68fc-4f3d-ac74-ca555231cc68");
 
 const CONFIGS: [&str; 3] = [
     "boot/syslinux/archiso_sys-linux.cfg", // arch / cachy / blackarch (syslinux)
@@ -53,30 +27,6 @@ const CONFIGS: [&str; 3] = [
 // make the appended hook run first
 const GENTOO_HOOK: &str = include_str!("../assets/gentoo.sh");
 const HOOK_PATH: &str = "usr/lib/dracut/hooks/pre-trigger/00-rsboot.sh";
-
-// implementing this for the protocol to succesfully Identify it and not have to add a separate
-// attribute that may break the structs internal structure when calling the methods
-unsafe impl uefi::Identify for EFI_RAM_DISK_PROTOCOL {
-    const GUID: uefi::Guid = RAM_DISK_GUID;
-}
-impl uefi::proto::Protocol for EFI_RAM_DISK_PROTOCOL {}
-
-#[allow(dead_code)]
-pub fn load_bootable(path: &uefi::CStr16) -> uefi::Result {
-    let handler = uefi::boot::image_handle();
-
-    let mut fs = uefi::fs::FileSystem::new(uefi::boot::get_image_file_system(handler)?);
-    // needs mut because when reading the file system, the read pointer changes its state
-
-    let buffer = fs.read(path).map_err(|e| {
-        log::error!("failed to read {path}, {e}");
-        uefi::Status::LOAD_ERROR
-    })?;
-    boot_from_iso(
-        crate::downloader::IsoBuffer::from_bytes(&buffer)?,
-        BootMethod::Netboot,
-    )
-}
 
 pub fn boot_from_iso(
     iso: crate::downloader::IsoBuffer,
@@ -108,10 +58,11 @@ pub fn boot_from_iso(
                 .iter()
                 .find_map(|p| read_iso(&iso, p))
                 .ok_or(uefi::Status::NOT_FOUND)?;
-            let (kernel_path, initrd_path, options) =
-                parse_config(cfg).ok_or(uefi::Status::NOT_FOUND)?;
-            let kernel_bytes = read_iso(&iso, &kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
-            let mut initrd = read_iso(&iso, &initrd_path).ok_or(uefi::Status::NOT_FOUND)?;
+            let boot_cfg = parse_config(cfg).ok_or(uefi::Status::NOT_FOUND)?;
+            let kernel_bytes =
+                read_iso(&iso, &boot_cfg.kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
+            let mut initrd =
+                read_iso(&iso, &boot_cfg.initrd_path).ok_or(uefi::Status::NOT_FOUND)?;
 
             let cmdline = match boot_method {
                 BootMethod::LoopInjection => {
@@ -124,13 +75,16 @@ pub fn boot_from_iso(
                         ("rsboot.iso", iso_bytes, 0o100644), // 100 - regular file 644 - chmod permissions
                         (HOOK_PATH, GENTOO_HOOK.as_bytes(), 0o100755), // 100 755 - chmod permisions
                     ]));
-                    options
+                    boot_cfg.cmdline
                 }
-                BootMethod::Memmap => alloc::format!(
-                    "{options} memmap={:#x}!{:#x}",
-                    iso.mapped_len(),
-                    iso.as_ptr() as usize,
-                ),
+                BootMethod::Memmap => {
+                    let options = boot_cfg.cmdline;
+                    alloc::format!(
+                        "{options} memmap={:#x}!{:#x}",
+                        iso.mapped_len(),
+                        iso.as_ptr() as usize,
+                    )
+                }
                 _ => unreachable!("this block reaches only  memmap or loop injection"),
             };
 
@@ -166,13 +120,7 @@ fn load_from_buffer(parent: uefi::Handle, buffer: &[u8]) -> uefi::Result<uefi::H
 }
 
 // returns paths as Strings, stopped returning CStr16 due to the new ISO9660 parser using String
-fn parse_config(
-    config: alloc::vec::Vec<u8>,
-) -> Option<(
-    alloc::string::String,
-    alloc::string::String,
-    alloc::string::String,
-)> {
+fn parse_config(config: alloc::vec::Vec<u8>) -> Option<BootConfig> {
     use alloc::string::ToString;
 
     let text = core::str::from_utf8(&config).unwrap_or("");
@@ -215,11 +163,14 @@ fn parse_config(
             options = Some(s.trim().to_string());
         }
     }
-    Some((kernel?, initrd?, options.or(inline_opts)?))
+    Some(BootConfig {
+        kernel_path: kernel?,
+        initrd_path: initrd?,
+        cmdline: options.or(inline_opts)?,
+    })
 }
 
 fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8>> {
-    // wrap the in-RAM iso bytes as a Read+Seek source for hadris-iso
     let bytes = iso.as_slice();
     let cursor = hadris_io::Cursor::new(bytes);
 
@@ -244,108 +195,6 @@ fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8>> {
         dir_ref = entry.as_dir_ref(&img).ok()?;
     }
     None
-}
-
-// EFI_LOAD_FILE2_PROTOCOL: C struct model took from edk2 firmware
-#[repr(C)]
-struct LoadFile2Protocol {
-    load_file: unsafe extern "efiapi" fn(
-        this: *mut LoadFile2Protocol,
-        file_path: *const EFI_DEVICE_PATH,
-        boot_policy: bool,
-        buffer_size: *mut usize,
-        buffer: *mut u8,
-    ) -> uefi::Status,
-    data: *const u8,
-    len: usize,
-}
-
-// the EFI stub calls this to fetch the initrd: once with a null buffer to learn the size,
-// then again with a buffer big enough to receive it
-unsafe extern "efiapi" fn initrd_load_file(
-    this: *mut LoadFile2Protocol,
-    _file_path: *const EFI_DEVICE_PATH,
-    boot_policy: bool,
-    buffer_size: *mut usize,
-    buffer: *mut u8,
-) -> uefi::Status {
-    // the initrd media protocol must be invoked with BootPolicy = false
-    if boot_policy {
-        return uefi::Status::UNSUPPORTED;
-    }
-    if this.is_null() || buffer_size.is_null() {
-        return uefi::Status::INVALID_PARAMETER;
-    }
-    let this = unsafe { &*this }; // oh how much i love C 
-    // first call (with null buffer) or too-small buffer: update the size  so the stub knows to allocate
-    if buffer.is_null() || unsafe { *buffer_size } < this.len {
-        unsafe { *buffer_size = this.len };
-        return uefi::Status::BUFFER_TOO_SMALL;
-    }
-    unsafe {
-        let dst: &mut [u8] = core::slice::from_raw_parts_mut(buffer, this.len);
-        let src = core::slice::from_raw_parts(this.data, this.len);
-        dst.copy_from_slice(src);
-        *buffer_size = this.len;
-    }
-    uefi::Status::SUCCESS
-}
-
-// the device path the stub locates LoadFile2 on: vendor: custom 3rd party node
-// carrying LINUX_EFI_INITRD_MEDIA_GUID, terminated by an end node
-#[repr(C, packed)] // packed so that rust doesnt add padding, otherwise efi stub would read garbage  
-struct InitrdDevicePath {
-    vendor: EFI_DEVICE_PATH, //4 bytes
-    vendor_guid: uefi::Guid, //16 bytes
-    end: EFI_DEVICE_PATH,    // 4 bytes
-}
-
-// install the LoadFile2 and InitrdDevicePath so kernel's efi stub  can pull the initrd from RAM, this is MANDATORY for
-// distributions that have their kernel/initrd on ISO9660 file system, if they are on EFI you can
-// just append initrd=<INITRD_PATH> to the cmdline
-fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result {
-    // both structs must outlive this call: the stub reads them during start_image,
-    // so leak them on purpose
-    let proto: *mut LoadFile2Protocol =
-        alloc::boxed::Box::into_raw(alloc::boxed::Box::new(LoadFile2Protocol {
-            load_file: initrd_load_file,
-            data: initrd.as_ptr(),
-            len: initrd.len(),
-        }));
-    core::mem::forget(initrd);
-    let dp: *mut InitrdDevicePath =
-        alloc::boxed::Box::into_raw(alloc::boxed::Box::new(InitrdDevicePath {
-            // MEDIA_DEVICE_PATH (0x04) / MEDIA_VENDOR_DP (0x03), length = 4 header + 16 guid
-            vendor: EFI_DEVICE_PATH {
-                r#type: 0x04,
-                sub_type: 0x03,
-                length: [20, 0],
-            },
-            vendor_guid: LINUX_EFI_INITRD_MEDIA_GUID,
-            // END_DEVICE_PATH (0x7f) / END_ENTIRE (0xff), length = 4
-            end: EFI_DEVICE_PATH {
-                r#type: 0x7f,
-                sub_type: 0xff,
-                length: [4, 0],
-            },
-        }));
-
-    // EFI STUB finds the handle via this func:
-    // LocateDevicePath(&LOAD_FILE2_GUID,  //
-    // &initrd_device_path, // the dp
-    // &out_handle) // the found handle
-    unsafe {
-        // create the handle and attach the device path protocol to it
-        let handle_tobefound_stub =
-            uefi::boot::install_protocol_interface(None, &DEVICE_PATH_GUID, dp.cast())?;
-        // install the loadfile2 protocol too
-        uefi::boot::install_protocol_interface(
-            Some(handle_tobefound_stub),
-            &LOAD_FILE2_GUID,
-            proto.cast(),
-        )?;
-    }
-    Ok(())
 }
 
 fn build_cpio(files: &[(&str, &[u8], u32)]) -> alloc::vec::Vec<u8> {
@@ -468,11 +317,11 @@ fn find_fat_fs(
     ))?;
     let mut fs_handle = None;
     for &h in handles_found.iter() {
+        // most likely we have  multiple file systems, use
+        // the handler found that coincides with the iso device path
         if let Ok(dp) =
             uefi::boot::open_protocol_exclusive::<uefi::proto::device_path::DevicePath>(h)
             && dp.as_bytes().starts_with(prefix)
-        // most likely we have  multiple file systems, use
-        // the handler found that coincides with the iso device path
         {
             fs_handle = Some(h);
             break;

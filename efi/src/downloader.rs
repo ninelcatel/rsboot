@@ -38,14 +38,6 @@ impl IsoBuffer {
             pages,
         })
     }
-    // this is used for the load_bootable method, will be needded for OSs that ship via .efi even
-    // though its not iso, example: arch, its bootloader doesnt have a certain kernel module which
-    // makes it not possible to boot unless we change the initramfs
-    pub fn from_bytes(bytes: &[u8]) -> uefi::Result<Self> {
-        let iso = Self::new(bytes.len())?;
-        iso.write(0, bytes);
-        Ok(iso)
-    }
 
     // copy  bytes into the buffer at offset
     fn write(&self, offset: usize, bytes: &[u8]) -> usize {

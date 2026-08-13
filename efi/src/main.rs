@@ -9,6 +9,7 @@ use uefi::system;
 mod downloader;
 mod draw;
 mod environment;
+mod handlers;
 mod loadbootable;
 
 use environment::Env;
