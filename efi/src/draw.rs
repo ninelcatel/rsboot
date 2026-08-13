@@ -169,6 +169,16 @@ impl<'a> Tui<'a> {
             self.out.write_fmt(format_args!("{:width$}", "")).ok();
         }
     }
+    // startup screen shown while dhcp comes up
+    pub fn begin_dhcp(&mut self) {
+        self.draw_rect();
+        self.draw_title();
+        self.out.set_color(Color::Magenta, RECT).ok();
+        let msg = "Establishing DHCP...";
+        self.center(msg.len(), self.rows / 3);
+        self.out.write_fmt(format_args!("{msg}")).ok();
+    }
+
     pub fn show_error(&mut self, status: uefi::Status) {
         self.draw_rect();
         self.draw_title();

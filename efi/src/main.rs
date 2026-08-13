@@ -75,8 +75,6 @@ fn run() -> uefi::Result {
     uefi::helpers::init()?;
     log::set_max_level(log::LevelFilter::Info); // without this, it adds unnecessarry buffering and
     // downloads REALLY slow
-    let dl = downloader::Downloader::connect()?;
-
     let mut running: bool = true;
 
     let enter: Char16 = Char16::try_from('\r').expect("'\\r' should always be a valid char");
@@ -88,7 +86,18 @@ fn run() -> uefi::Result {
         let mut tui = draw::Tui::new(out);
         tui.clear_screen();
 
+        //  bring the network up before the menu
+        //  goes into main menu only if dhcp is up
+        let dl = loop {
+            tui.begin_dhcp();
+            match downloader::Downloader::connect() {
+                Ok(dl) => break dl,
+                Err(e) => tui.show_error(e.status()),
+            }
+        };
+
         let names: [&str; OS.len()] = core::array::from_fn(|i| OS[i].name);
+        tui.clear_screen();
         tui.draw_menu(current_pick, &names, &env);
 
         while running {
