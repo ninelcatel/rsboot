@@ -6,15 +6,15 @@ use uefi::prelude::*;
 use uefi::proto::console::text::{Key, ScanCode};
 use uefi::system;
 
+mod boot;
 mod downloader;
 mod draw;
 mod environment;
 mod handlers;
-mod loadbootable;
 
 use environment::Env;
 
-use crate::loadbootable::boot_from_iso;
+use crate::boot::boot;
 
 const OS: [environment::OS; 9] = [
     environment::OS {
@@ -163,7 +163,7 @@ fn run() -> uefi::Result {
                     });
                     match result {
                         Ok(buffer) => {
-                            if let Err(e) = boot_from_iso(buffer, os.boot_method) {
+                            if let Err(e) = boot(buffer, os.boot_method) {
                                 tui.show_error(e.status());
                                 env = Env::Menu;
                             }
