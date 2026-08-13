@@ -144,13 +144,21 @@ fn run() -> uefi::Result {
                         !matches!(key, Ok(Some(Key::Special(ScanCode::ESCAPE))))
                     });
                     match result {
-                        Ok(buffer) => boot_from_iso(buffer, os.boot_method).unwrap(),
+                        Ok(buffer) => {
+                            if let Err(e) = boot_from_iso(buffer, os.boot_method) {
+                                tui.show_error(e.status());
+                                env = Env::Menu;
+                            }
+                        }
                         // esc pressed mid-download: iso already freed, back to the menu
                         Err(e) if e.status() == Status::ABORTED => {
                             env = Env::Menu;
                             tui.clear_screen();
                         }
-                        Err(e) => panic!("download failed: {:?}", e.status()),
+                        Err(e) => {
+                            tui.show_error(e.status());
+                            env = Env::Menu;
+                        }
                     }
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {

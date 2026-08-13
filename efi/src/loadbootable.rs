@@ -90,7 +90,8 @@ pub fn boot_from_iso(
             let instance = load_from_buffer(handler, &kernel_bytes)?;
             install_initrd(initrd)?;
 
-            let cmdline = uefi::CString16::try_from(cmdline.as_str()).unwrap();
+            let cmdline = uefi::CString16::try_from(cmdline.as_str())
+                .map_err(|_| uefi::Status::INVALID_PARAMETER)?;
             unsafe {
                 let mut loaded_image = uefi::boot::open_protocol_exclusive::<
                     uefi::proto::loaded_image::LoadedImage,
@@ -348,16 +349,18 @@ fn load_boot_file(
     let mut builder = uefi::proto::device_path::build::DevicePathBuilder::with_vec(&mut buf);
 
     for node in fs_devicepath.node_iter() {
-        builder = builder.push(&node).unwrap();
+        builder = builder
+            .push(&node)
+            .map_err(|_| uefi::Status::DEVICE_ERROR)?;
     }
 
     let full_path = builder
         .push(&uefi::proto::device_path::build::media::FilePath {
             path_name: BOOT_FILE,
         })
-        .unwrap()
+        .map_err(|_| uefi::Status::DEVICE_ERROR)?
         .finalize()
-        .unwrap(); // too lazy to treat these results
+        .map_err(|_| uefi::Status::DEVICE_ERROR)?; // too lazy to treat these results
 
     let instance = uefi::boot::load_image(
         parent_image,

@@ -1,5 +1,8 @@
 use core::fmt::Write;
-use uefi::proto::console::text::{Color, Output};
+use uefi::{
+    proto::console::text::{Color, Output},
+    system::with_stdin,
+};
 
 use crate::environment;
 
@@ -165,5 +168,19 @@ impl<'a> Tui<'a> {
             self.out.set_cursor_position(col_start, r).ok();
             self.out.write_fmt(format_args!("{:width$}", "")).ok();
         }
+    }
+    pub fn show_error(&mut self, status: uefi::Status) {
+        self.draw_rect();
+        self.draw_title();
+        self.out.set_color(Color::Red, RECT).ok();
+        let msg = "action failed, press any key to get back to the menu";
+        self.center(msg.len(), self.rows / 3);
+        self.out.write_fmt(format_args!("{msg}: {status:?}")).ok();
+        with_stdin(|input| {
+            if let Ok(event) = input.wait_for_key_event() {
+                let _ = uefi::boot::wait_for_event(&mut [event]);
+            }
+            let _ = input.read_key();
+        })
     }
 }
