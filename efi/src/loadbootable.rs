@@ -37,15 +37,12 @@ pub fn boot_from_iso(
         BootMethod::RamDisk => {
             // the iso is already allocated, so we only register those pages as a virtual cd,
             // then find FAT fs and load its bootloader
-            let base = iso.as_ptr() as u64;
-            let size = iso.len() as u64;
-
             let ramdisk_handle = locate_ramdisk(handler)?;
             let ram_disk =
                 uefi::boot::open_protocol_exclusive::<EFI_RAM_DISK_PROTOCOL>(ramdisk_handle)?;
 
-            let ram_devicepath = register_virtual_cd(&ram_disk, base, size)?;
-            let fs_handle = find_fat_fs(ram_devicepath)?;
+            let vcd = register_virtual_cd(&ram_disk, iso)?;
+            let fs_handle = find_fat_fs(vcd.device_path())?;
             let instance = load_boot_file(fs_handle, handler)?;
 
             start_image(instance)
@@ -273,13 +270,44 @@ fn locate_ramdisk(handler: uefi::Handle) -> uefi::Result<uefi::Handle> {
     Ok(ramdisk_handle)
 }
 
-// register the iso pages as a virtual cd and return its device path
-// maybe call unregister on fail
+// a virtual CD that OWNS the iso pages. iso pages lifetime are linked to
+// the registration. on a failed boot Drop disconnects the FAT driver, unregisters, then frees or
+// leaks the pages (leaking is a fallback to not lead to UB)
+struct VirtualCd {
+    block_handle: Option<uefi::Handle>,
+    unregister: unsafe extern "efiapi" fn(*const EFI_DEVICE_PATH) -> uefi::Status,
+    dp: *const EFI_DEVICE_PATH,
+    iso: Option<IsoBuffer>,
+}
+
+impl VirtualCd {
+    fn device_path(&self) -> &uefi::proto::device_path::DevicePath {
+        unsafe { uefi::proto::device_path::DevicePath::from_ffi_ptr(self.dp.cast()) }
+    }
+}
+
+impl Drop for VirtualCd {
+    fn drop(&mut self) {
+        // order matters disconnect the FAT driver we bound so the firmware can
+        // release the pages, THEN unregister, THEN free.
+        if let Some(handle) = self.block_handle {
+            let _ = uefi::boot::disconnect_controller(handle, None, None);
+        }
+        let status = unsafe { (self.unregister)(self.dp) };
+        if !status.is_success() {
+            core::mem::forget(self.iso.take()); // FALLBACK TO NOT LEAD TO UB 
+        } else {
+            drop(self.iso.take());
+        }
+    }
+}
+
 fn register_virtual_cd(
     ram_disk: &ScopedProtocol<EFI_RAM_DISK_PROTOCOL>,
-    base: u64,
-    size: u64,
-) -> uefi::Result<&'static uefi::proto::device_path::DevicePath> {
+    iso: IsoBuffer,
+) -> uefi::Result<VirtualCd> {
+    let base = iso.as_ptr() as u64;
+    let size = iso.len() as u64;
     let mut ram_devicepath_ptr: *const EFI_DEVICE_PATH = core::ptr::null();
     let status = unsafe {
         (ram_disk.register)(
@@ -297,7 +325,18 @@ fn register_virtual_cd(
         return Err(status.into());
     }
 
-    Ok(unsafe { uefi::proto::device_path::DevicePath::from_ffi_ptr(ram_devicepath_ptr.cast()) })
+    let device_path =
+        unsafe { uefi::proto::device_path::DevicePath::from_ffi_ptr(ram_devicepath_ptr.cast()) };
+    let mut remaining: &uefi::proto::device_path::DevicePath = device_path;
+    let block_handle =
+        uefi::boot::locate_device_path::<uefi::proto::media::block::BlockIO>(&mut remaining).ok();
+
+    Ok(VirtualCd {
+        block_handle,
+        unregister: ram_disk.unregister,
+        dp: ram_devicepath_ptr,
+        iso: Some(iso),
+    })
 }
 
 fn find_fat_fs(
