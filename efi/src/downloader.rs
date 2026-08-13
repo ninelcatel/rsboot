@@ -26,7 +26,8 @@ impl IsoBuffer {
         )?;
 
         let alligned = (raw.as_ptr() as usize).next_multiple_of(PAGE_ALLIGNER);
-        let base = core::ptr::NonNull::new(alligned as *mut u8).unwrap();
+        let base =
+            core::ptr::NonNull::new(alligned as *mut u8).ok_or(uefi::Status::OUT_OF_RESOURCES)?;
 
         let cap = pages * uefi::boot::PAGE_SIZE - (alligned - raw.as_ptr() as usize);
         Ok(Self {
@@ -95,7 +96,8 @@ impl Downloader {
 
         http.request_get(url)?;
         let first = http.response_first(true)?;
-        //translates to if http resp status != http 200
+        //translates to if http resp status != http 200, couldve used HttpStatus but i need to
+        //import another crate and i cba
         if first.status.0 != 3 {
             return Err(uefi::Status::PROTOCOL_ERROR.into());
         };
@@ -113,6 +115,11 @@ impl Downloader {
 
         // the first response might have more than the headers, so append to the buffer
         let mut written = iso.write(0, &first.body);
+
+        if written != first.body.len() {
+            return Err(uefi::Status::BUFFER_TOO_SMALL.into());
+        }
+
         if !in_progress(written, len) {
             return Err(uefi::Status::ABORTED.into());
         }

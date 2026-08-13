@@ -18,16 +18,15 @@ extern crate alloc;
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
 const RAM_DISK_DXE: &[u8] = include_bytes!("../assets/RamDiskDxe.efi");
 
+// make the appended hook run first
+const GENTOO_HOOK: &str = include_str!("../assets/gentoo.sh");
+const HOOK_PATH: &str = "usr/lib/dracut/hooks/pre-trigger/00-rsboot.sh";
+
 const CONFIGS: [&str; 3] = [
     "boot/syslinux/archiso_sys-linux.cfg", // arch / cachy / blackarch (syslinux)
     "boot/grub/grub.cfg",                  // gentoo etc (grub)
     "EFI/BOOT/grub.cfg",                   // opensuse (grub, efi-only)
 ];
-
-// make the appended hook run first
-const GENTOO_HOOK: &str = include_str!("../assets/gentoo.sh");
-const HOOK_PATH: &str = "usr/lib/dracut/hooks/pre-trigger/00-rsboot.sh";
-
 pub fn boot_from_iso(
     iso: crate::downloader::IsoBuffer,
     boot_method: environment::BootMethod,
@@ -176,7 +175,11 @@ fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8>> {
 
     let img = hadris_iso::sync::IsoImage::open(cursor).ok()?;
     let mut dir_ref = img.root_dir().dir_ref();
-    let mut parts = path.trim_matches('/').split('/').peekable(); // secventially
+    let mut parts = path
+        .trim_matches('/')
+        .split('/')
+        .filter(|s| !s.is_empty()) // checks for paths//like//this
+        .peekable(); // secventially
     // go through the directories, thats how the parser works
     while let Some(part) = parts.next() {
         let dir = img.open_dir(dir_ref);
