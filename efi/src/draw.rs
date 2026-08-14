@@ -15,22 +15,59 @@ pub struct Tui<'a> {
     out: &'a mut Output,
     cols: usize,
     rows: usize,
+    layout_drawn: bool, // flag to check if dimensions were changed and need a FULL redraw
 }
 
 impl<'a> Tui<'a> {
     pub fn new(out: &'a mut Output) -> Self {
         let (cols, rows) = Tui::get_dimensions(out);
-        Self { out, cols, rows }
+        Self {
+            out,
+            cols,
+            rows,
+            layout_drawn: false,
+        }
     }
 
     pub fn clear_screen(&mut self) {
         self.out.set_color(Color::LightGray, Color::Black).ok(); // set colors to default
         self.out.clear().ok();
+        self.layout_drawn = false;
+    }
+
+    // draw the rect adn title once; repaint only if the resolution changed
+    fn ensure_layout(&mut self) {
+        let (cols, rows) = Tui::get_dimensions(self.out);
+        if (cols, rows) != (self.cols, self.rows) {
+            self.cols = cols;
+            self.rows = rows;
+            self.layout_drawn = false;
+        }
+        if !self.layout_drawn {
+            self.clear_screen();
+            self.draw_rect();
+            self.draw_title();
+            self.layout_drawn = true;
+        }
+    }
+
+    // clear only the inside of the rect
+    fn clear_body(&mut self) {
+        self.out.set_color(Color::Black, RECT).ok();
+        let col_start = self.cols / 5;
+        let col_end = self.cols.saturating_sub(col_start);
+        let width = col_end.saturating_sub(col_start);
+        let row_start = self.rows / 3;
+        let row_end = self.rows.saturating_sub(self.rows / 5);
+        for r in row_start..row_end {
+            self.out.set_cursor_position(col_start, r).ok();
+            self.out.write_fmt(format_args!("{:width$}", "")).ok();
+        }
     }
 
     pub fn draw_menu(&mut self, selected: usize, items: &[&str], env: &environment::Env) {
-        self.draw_rect();
-        self.draw_title();
+        self.ensure_layout();
+        self.clear_body();
 
         match env {
             environment::Env::Menu => {
@@ -55,8 +92,8 @@ impl<'a> Tui<'a> {
 
     // new render, rectangle for downloading screen
     pub fn begin_download(&mut self, name: &str) {
-        self.draw_rect();
-        self.draw_title();
+        self.ensure_layout();
+        self.clear_body();
 
         self.out.set_color(Color::Magenta, RECT).ok();
         let line_len = "Downloading ".len() + name.len() + "...".len();
@@ -171,8 +208,8 @@ impl<'a> Tui<'a> {
     }
     // startup screen shown while dhcp comes up
     pub fn begin_dhcp(&mut self) {
-        self.draw_rect();
-        self.draw_title();
+        self.ensure_layout();
+        self.clear_body();
         self.out.set_color(Color::Magenta, RECT).ok();
         let msg = "Establishing DHCP...";
         self.center(msg.len(), self.rows / 3);
@@ -182,8 +219,8 @@ impl<'a> Tui<'a> {
     // draws the error, blocks for a key, and returns which key was pressed (so callers
     // like the DHCP screen can treat ESC specially)
     pub fn show_error(&mut self, status: uefi::Status) -> Option<Key> {
-        self.draw_rect();
-        self.draw_title();
+        self.ensure_layout();
+        self.clear_body();
         self.out.set_color(Color::Red, RECT).ok();
         let msg = "action failed, press a key to continue (ESC quits)";
         self.center(msg.len(), self.rows / 3);

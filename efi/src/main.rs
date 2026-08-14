@@ -17,7 +17,7 @@ use environment::Env;
 
 use crate::boot::boot;
 
-const OS: [environment::OS; 9] = [
+const OS: [environment::OS; 11] = [
     environment::OS {
         name: "Debian",
         url: "http://ftp2.de.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u6/images/netboot/mini.iso",
@@ -72,6 +72,21 @@ const OS: [environment::OS; 9] = [
         sha256: None,
         boot_method: environment::BootMethod::Memmap,
     },
+    environment::OS {
+        name: "OpenBSD",
+        url: "http://10.0.2.2:8000/openbsd.iso",
+        sha256: Some("7a4a92e953618035097c796a90b54424a0f3ae775552e1e7d102cf8a5130449f"),
+        boot_method: environment::BootMethod::RamDisk,
+    },
+    // this is actually mfsBSD, but has FreeBSD kernel and userland
+    // read more at https://mfsbsd.vx.sk/
+    // login: root:mfsroot
+    environment::OS {
+        name: "FreeBSD",
+        url: "http://10.0.2.2:8000/freebsd_mfs.iso",
+        sha256: Some("2803be01ef284cb4d58c9177475c7a20ac72292e4943bc91eb159c592bfc3b5c"),
+        boot_method: environment::BootMethod::RamDisk,
+    },
 ];
 
 #[entry]
@@ -94,7 +109,6 @@ fn run() -> uefi::Result {
 
     system::with_stdout(|out| {
         let mut tui = draw::Tui::new(out);
-        tui.clear_screen();
 
         //  bring the network up before the menu
         //  goes into main menu only if dhcp is up
@@ -116,7 +130,6 @@ fn run() -> uefi::Result {
         };
 
         let names: [&str; OS.len()] = core::array::from_fn(|i| OS[i].name);
-        tui.clear_screen();
         tui.draw_menu(current_pick, &names, &env);
 
         while running {
@@ -154,11 +167,9 @@ fn run() -> uefi::Result {
                 (Env::Menu, Key::Printable(c)) if c == enter => {
                     // enter the version picker menu for cufrent os
                     env = Env::Os;
-                    tui.clear_screen();
                 }
                 (Env::Os, Key::Printable(c)) if c == enter => {
                     let os = &OS[current_pick];
-                    tui.clear_screen();
                     tui.begin_download(os.name);
                     let mut last = usize::MAX;
                     let result = dl.get(os.url, os.boot_method.max_bytes(), |written, total| {
@@ -189,7 +200,6 @@ fn run() -> uefi::Result {
                         // esc pressed mid-download: iso already freed, back to the menu
                         Err(e) if e.status() == Status::ABORTED => {
                             env = Env::Menu;
-                            tui.clear_screen();
                         }
                         Err(e) => {
                             tui.show_error(e.status());
@@ -199,7 +209,6 @@ fn run() -> uefi::Result {
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
-                    tui.clear_screen();
                 }
                 _ => continue,
             }

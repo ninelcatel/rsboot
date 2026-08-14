@@ -15,7 +15,8 @@ OVMF_VARS := OVMF_VARS.fd
 
 QEMU := qemu-system-x86_64 -enable-kvm -cpu host -machine q35 -m $(MEM) $(DISPLAY) \
 	-drive if=pflash,format=raw,readonly=on,file=$(OVMF_CODE) \
-	-drive if=pflash,format=raw,readonly=on,file=$(OVMF_VARS)
+	-drive if=pflash,format=raw,readonly=on,file=$(OVMF_VARS) \
+	-device virtio-vga,xres=1280,yres=800 
 
 .PHONY: setup run run-app clean
 
