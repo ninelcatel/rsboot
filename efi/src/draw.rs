@@ -36,7 +36,7 @@ impl<'a> Tui<'a> {
     }
 
     // draw the rect adn title once; repaint only if the resolution changed
-    fn ensure_layout(&mut self) {
+    fn check_layout(&mut self) {
         let (cols, rows) = Tui::get_dimensions(self.out);
         if (cols, rows) != (self.cols, self.rows) {
             self.cols = cols;
@@ -66,7 +66,7 @@ impl<'a> Tui<'a> {
     }
 
     pub fn draw_menu(&mut self, selected: usize, items: &[&str], env: &environment::Env) {
-        self.ensure_layout();
+        self.check_layout();
         self.clear_body();
 
         match env {
@@ -92,7 +92,7 @@ impl<'a> Tui<'a> {
 
     // new render, rectangle for downloading screen
     pub fn begin_download(&mut self, name: &str) {
-        self.ensure_layout();
+        self.check_layout();
         self.clear_body();
 
         self.out.set_color(Color::Magenta, RECT).ok();
@@ -208,7 +208,7 @@ impl<'a> Tui<'a> {
     }
     // startup screen shown while dhcp comes up
     pub fn begin_dhcp(&mut self) {
-        self.ensure_layout();
+        self.check_layout();
         self.clear_body();
         self.out.set_color(Color::Magenta, RECT).ok();
         let msg = "Establishing DHCP...";
@@ -219,7 +219,7 @@ impl<'a> Tui<'a> {
     // draws the error, blocks for a key, and returns which key was pressed (so callers
     // like the DHCP screen can treat ESC specially)
     pub fn show_error(&mut self, status: uefi::Status) -> Option<Key> {
-        self.ensure_layout();
+        self.check_layout();
         self.clear_body();
         self.out.set_color(Color::Red, RECT).ok();
         let msg = "action failed, press a key to continue (ESC quits)";

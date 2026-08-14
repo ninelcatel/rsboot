@@ -38,11 +38,20 @@ pub fn boot(
         //same kernel + initrd from the ISO logic.
         // only initrd and cmdline differs
         BootMethod::Memmap | BootMethod::LoopInjection => {
-            let cfg = CONFIGS
+            let boot_cfg = CONFIGS
                 .iter()
                 .find_map(|p| read_iso(&iso, p))
+                .and_then(parse_config)
+                .or_else(|| readcfg::grub_fallback(&iso))
                 .ok_or(uefi::Status::NOT_FOUND)?;
-            let boot_cfg = parse_config(cfg).ok_or(uefi::Status::NOT_FOUND)?;
+            /*
+            Artix test
+            let boot_cfg = environment::BootConfig {
+            kernel_path: alloc::string::String::from("boot/vmlinuz-x86_64"),
+            initrd_path: alloc::string::String::from("boot/initramfs-x86_64.img"),
+            cmdline: alloc::string::String::from("label=ARTIX_202604"),
+            };
+             */
             let kernel_bytes =
                 read_iso(&iso, &boot_cfg.kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
             let mut initrd =

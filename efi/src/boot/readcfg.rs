@@ -92,3 +92,27 @@ pub(super) fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8
     }
     None
 }
+
+// black magic to read the pvd label for artix or similar arch+grub distros
+pub(super) fn read_label(iso: &IsoBuffer) -> Option<alloc::string::String> {
+    let bytes = iso.as_slice();
+
+    if bytes.get(0x8000)? != &1 || bytes.get(0x8001..0x8006)? != b"CD001" {
+        return None;
+    }
+    let label = core::str::from_utf8(bytes.get(0x8028..0x8028 + 32)?)
+        .ok()?
+        .trim();
+    if !label.is_empty() {
+        return Some(label.into());
+    }
+    None
+}
+pub(super) fn grub_fallback(iso: &IsoBuffer) -> Option<BootConfig> {
+    let label = read_label(iso)?;
+    Some(BootConfig {
+        kernel_path: alloc::string::String::from("boot/vmlinuz-x86_64"),
+        initrd_path: alloc::string::String::from("boot/initramfs-x86_64.img"),
+        cmdline: alloc::format!("label={label}"),
+    })
+}
