@@ -151,7 +151,7 @@ fn run() -> uefi::Result {
                     tui.clear_screen();
                     tui.begin_download(os.name);
                     let mut last = usize::MAX;
-                    let result = dl.get(os.url, |written, total| {
+                    let result = dl.get(os.url, os.boot_method.max_bytes(), |written, total| {
                         let pct = (written * 100).checked_div(total).unwrap_or(0);
                         if pct != last {
                             last = pct;

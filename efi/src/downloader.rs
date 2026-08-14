@@ -87,6 +87,7 @@ impl Downloader {
     pub fn get(
         &self,
         url: &str,
+        max_bytes: Option<usize>,
         mut in_progress: impl FnMut(usize, usize) -> bool,
     ) -> uefi::Result<IsoBuffer> {
         // one httphelper instance per download, dropped when this fn returs in order to not get
@@ -111,6 +112,11 @@ impl Downloader {
         }
 
         let len = len.ok_or(uefi::Status::UNSUPPORTED)?;
+        // this is for the Loop injection method, cpio has a 4GB limit
+        // therefore an iso with loop inject > 4GB will crash
+        if max_bytes.is_some_and(|m| len > m) {
+            return Err(uefi::Status::BUFFER_TOO_SMALL.into());
+        }
         let iso = IsoBuffer::new(len)?;
 
         // the first response might have more than the headers, so append to the buffer

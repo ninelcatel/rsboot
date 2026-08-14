@@ -12,6 +12,15 @@ pub enum BootMethod {
     LoopInjection,
 }
 
+impl BootMethod {
+    pub fn max_bytes(&self) -> Option<usize> {
+        match self {
+            BootMethod::LoopInjection => Some(0xFFFF_FFFF),
+            _ => None,
+        }
+    }
+}
+
 pub struct OS<'a> {
     pub name: &'a str,
     pub url: &'a str,
