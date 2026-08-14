@@ -7,6 +7,7 @@ use uefi::proto::console::text::{Key, ScanCode};
 use uefi::system;
 
 mod boot;
+mod checksum;
 mod downloader;
 mod draw;
 mod environment;
@@ -20,46 +21,55 @@ const OS: [environment::OS; 9] = [
     environment::OS {
         name: "Debian",
         url: "http://ftp2.de.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u6/images/netboot/mini.iso",
+        sha256: Some("3cedd6f417cab308e2a9fbf4273435849ceeffef4568dc764c24c394fb815483"),
         boot_method: environment::BootMethod::RamDisk,
     },
     environment::OS {
         name: "Arch Linux",
         url: "http://10.0.2.2:8000/arch.iso",
+        sha256: None,
         boot_method: environment::BootMethod::Memmap,
     },
     environment::OS {
         name: "Ubuntu",
         url: "http://10.0.2.2:8000/ubuntu.iso",
+        sha256: None,
         boot_method: environment::BootMethod::RamDisk,
     },
     environment::OS {
         name: "Fedora",
         url: "http://10.0.2.2:8000/fedora.iso",
+        sha256: None,
         boot_method: environment::BootMethod::RamDisk,
     },
     environment::OS {
         name: "CachyOS",
         url: "http://10.0.2.2:8000/cachy.iso",
+        sha256: None,
         boot_method: environment::BootMethod::Memmap,
     },
     environment::OS {
         name: "Gentoo",
         url: "http://10.0.2.2:8000/gentoo_gui.iso",
+        sha256: None,
         boot_method: environment::BootMethod::LoopInjection,
     },
     environment::OS {
         name: "NixOS",
         url: "http://10.0.2.2:8000/nixos.efi",
+        sha256: None,
         boot_method: environment::BootMethod::Netboot,
     },
     environment::OS {
         name: "Artix",
         url: "http://10.0.2.2:8000/artix.iso",
+        sha256: None,
         boot_method: environment::BootMethod::Memmap,
     },
     environment::OS {
         name: "openSUSE",
         url: "http://10.0.2.2:8000/opensuse.iso",
+        sha256: None,
         boot_method: environment::BootMethod::Memmap,
     },
 ];
@@ -163,9 +173,17 @@ fn run() -> uefi::Result {
                     });
                     match result {
                         Ok(buffer) => {
-                            if let Err(e) = boot(buffer, os.boot_method) {
-                                tui.show_error(e.status());
-                                env = Env::Menu;
+                            // integrity check
+                            let verified = match os.sha256 {
+                                Some(hex) => checksum::verify_sha256(buffer.as_slice(), hex),
+                                None => Ok(()),
+                            };
+                            match verified.and_then(|_| boot(buffer, os.boot_method)) {
+                                Ok(()) => {}
+                                Err(e) => {
+                                    tui.show_error(e.status());
+                                    env = Env::Menu;
+                                }
                             }
                         }
                         // esc pressed mid-download: iso already freed, back to the menu

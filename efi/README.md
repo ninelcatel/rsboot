@@ -15,6 +15,17 @@ make build
 make install #builds and copies it to ../qemu 
 ```
 
+## dependencies
+
+```
+uefi        # UEFI protocols + boot services 
+hadris-iso  # parse the ISO9660 from RAM (kernel/initrd/cmdline)
+hadris-io   # read wrapper over the ISO bytes for hadris-iso
+sha2        # sha256 integrity check for the iso 
+```
+
+
+
 ## GUIDs  that may or may not be used from [edk2 repo](https://github.com/tianocore/edk2/blob/master/MdePkg/MdePkg.dec):
 
 

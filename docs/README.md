@@ -19,9 +19,10 @@ Will start with Linux only, Windows/BSD might or might not be implemented
 2. Loading another local .efi and booting into it (done)
 3. Booting into OS .iso loaded in RAM (done)
 4. DHCP + HTTP get (done)
-5. Figure out how to boot  into Arch based distros, Nix, Gentoo,my best guess is that they rely on actual media rather than ramdisk
-6. Verify the .iso (checksums)
-7. Boot the verified .iso
+5. Figure out how to boot  into Arch based distros, Nix, Gentoo,my best guess is that they rely on actual media rather than ramdisk (done)
+6. Verify the .iso checksums (done)
+7. Boot the verified .iso (done)
+8. add OS catalogs and BSD,Artix support
 
 
 ## Phase 2: PXE/Network Boot via Docker
@@ -42,3 +43,13 @@ sudo dinitctl enable docker
 sudo dinitctl start docker
 
 ```
+
+## dependencies 
+
+```
+uefi        # UEFI protocols + boot services 
+hadris-iso  # parse the ISO9660 from RAM (kernel/initrd/cmdline)
+hadris-io   # read wrapper over the ISO bytes for hadris-iso
+sha2        # sha256 integrity check for the iso 
+```
+

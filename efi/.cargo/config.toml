@@ -1,2 +1,6 @@
 [build]
 target = "x86_64-unknown-uefi"
+
+# needed for the sha2 crate to use the rust-only backend 
+[target.x86_64-unknown-uefi]
+rustflags = ["--cfg", 'sha2_backend="soft"']

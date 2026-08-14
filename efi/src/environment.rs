@@ -24,6 +24,7 @@ impl BootMethod {
 pub struct OS<'a> {
     pub name: &'a str,
     pub url: &'a str,
+    pub sha256: Option<&'a str>,
     pub boot_method: BootMethod,
 }
 
