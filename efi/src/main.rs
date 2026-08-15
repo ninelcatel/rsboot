@@ -132,18 +132,8 @@ fn run() -> uefi::Result {
                 }
 
                 (Env::Os, Key::Printable(c)) if c == enter => {
-                    let name = &os[family_picked].name;
                     let os = &os[family_picked].children[current_pick];
-                    tui.begin_download(
-                        alloc::format!(
-                            "{} {} {} {}",
-                            name,
-                            os.edition.unwrap_or(""),
-                            os.version,
-                            os.os_type
-                        )
-                        .as_str(),
-                    );
+                    tui.begin_download(children_names[current_pick].as_str());
                     let mut last = usize::MAX;
                     let result = dl.get(os.url, os.boot_method.max_bytes(), |written, total| {
                         let pct = (written * 100).checked_div(total).unwrap_or(0);
@@ -167,16 +157,25 @@ fn run() -> uefi::Result {
                                 Err(e) => {
                                     tui.show_error(e.status());
                                     env = Env::Menu;
+                                    children_names.clear();
+                                    current_pick = family_picked;
+                                    family_picked = 0;
                                 }
                             }
                         }
                         // esc pressed mid-download: iso already freed, back to the menu
                         Err(e) if e.status() == Status::ABORTED => {
                             env = Env::Menu;
+                            children_names.clear();
+                            current_pick = family_picked;
+                            family_picked = 0;
                         }
                         Err(e) => {
                             tui.show_error(e.status());
                             env = Env::Menu;
+                            children_names.clear();
+                            current_pick = family_picked;
+                            family_picked = 0;
                         }
                     }
                 }

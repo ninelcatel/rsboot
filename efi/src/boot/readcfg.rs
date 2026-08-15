@@ -84,9 +84,9 @@ pub(super) fn read_iso(iso: &IsoBuffer, path: &str) -> Option<alloc::vec::Vec<u8
             // if there arent directories left to navigate, it means we are
             // at the destination file
             let ext = entry.extents().next()?;
-            let start = ext.sector.0 << 11;
+            let start = ext.sector.0.checked_mul(2048)?;
             let len = ext.length as usize;
-            return Some(bytes.get(start..start + len)?.to_vec());
+            return Some(bytes.get(start..start.checked_add(len)?)?.to_vec());
         }
         dir_ref = entry.as_dir_ref(&img).ok()?;
     }

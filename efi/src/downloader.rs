@@ -17,8 +17,13 @@ pub struct IsoBuffer {
 
 impl IsoBuffer {
     pub fn new(len: usize) -> uefi::Result<Self> {
-        let mapped = len.next_multiple_of(PAGE_ALLIGNER);
-        let pages = (mapped + PAGE_ALLIGNER).div_ceil(uefi::boot::PAGE_SIZE);
+        let mapped = len
+            .checked_next_multiple_of(PAGE_ALLIGNER)
+            .ok_or(uefi::Status::OUT_OF_RESOURCES)?;
+        let pages = (mapped
+            .checked_add(PAGE_ALLIGNER)
+            .ok_or(uefi::Status::OUT_OF_RESOURCES)?)
+        .div_ceil(uefi::boot::PAGE_SIZE);
         let raw = uefi::boot::allocate_pages(
             uefi::boot::AllocateType::AnyPages,
             uefi::boot::MemoryType::RESERVED,
@@ -41,7 +46,7 @@ impl IsoBuffer {
     }
 
     // copy  bytes into the buffer at offset
-    fn write(&self, offset: usize, bytes: &[u8]) -> usize {
+    fn write(&mut self, offset: usize, bytes: &[u8]) -> usize {
         let n = bytes.len().min(self.cap.saturating_sub(offset));
         unsafe {
             core::ptr::copy_nonoverlapping(bytes.as_ptr(), self.base.as_ptr().add(offset), n);
@@ -112,12 +117,13 @@ impl Downloader {
         }
 
         let len = len.ok_or(uefi::Status::UNSUPPORTED)?;
+
         // this is for the Loop injection method, cpio has a 4GB limit
         // therefore an iso with loop inject > 4GB will crash
         if max_bytes.is_some_and(|m| len > m) {
             return Err(uefi::Status::BUFFER_TOO_SMALL.into());
         }
-        let iso = IsoBuffer::new(len)?;
+        let mut iso = IsoBuffer::new(len)?;
 
         // the first response might have more than the headers, so append to the buffer
         let mut written = iso.write(0, &first.body);

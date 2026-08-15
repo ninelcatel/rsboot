@@ -44,14 +44,7 @@ pub fn boot(
                 .and_then(parse_config)
                 .or_else(|| readcfg::grub_fallback(&iso))
                 .ok_or(uefi::Status::NOT_FOUND)?;
-            /*
-            Artix test
-            let boot_cfg = environment::BootConfig {
-            kernel_path: alloc::string::String::from("boot/vmlinuz-x86_64"),
-            initrd_path: alloc::string::String::from("boot/initramfs-x86_64.img"),
-            cmdline: alloc::string::String::from("label=ARTIX_202604"),
-            };
-             */
+
             let kernel_bytes =
                 read_iso(&iso, &boot_cfg.kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
             let mut initrd =
@@ -82,7 +75,7 @@ pub fn boot(
             };
 
             let instance = load_from_buffer(handler, &kernel_bytes)?;
-            install_initrd(initrd)?;
+            let installed_initrd = install_initrd(initrd)?;
 
             let cmdline = uefi::CString16::try_from(cmdline.as_str())
                 .map_err(|_| uefi::Status::INVALID_PARAMETER)?;
@@ -92,7 +85,14 @@ pub fn boot(
                 >(instance)?;
                 loaded_image.set_load_options(cmdline.as_ptr().cast(), cmdline.num_bytes() as u32);
             }
-            start_image(instance)
+            let final_status = start_image(instance);
+            if final_status.is_err() {
+                installed_initrd.uninstall();
+            } else {
+                // won't really reach this else branch unless its ONLY the kernel or an efi which exits at some point
+                installed_initrd.leak();
+            }
+            final_status
         }
         BootMethod::Netboot => {
             let image = iso.as_slice();

@@ -88,10 +88,42 @@ pub struct InitrdDevicePath {
     end: EFI_DEVICE_PATH,    // 4 bytes
 }
 
+// helper struct used for clean up after loop/memmap start_image fails
+// if it fails, when booting another instance, the efi stub might pick up stale or broken
+// protocols from before and would most likely lead to UB
+pub struct InstalledInitrd {
+    handle: uefi::Handle,
+    protocol: *mut LoadFile2Protocol,
+    dp: *mut InitrdDevicePath,
+    #[allow(dead_code)] // its as an attribute only to consume it
+    initrd: alloc::vec::Vec<u8>,
+}
+impl InstalledInitrd {
+    pub fn leak(self) {
+        core::mem::forget(self);
+    }
+    pub fn uninstall(self) {
+        unsafe {
+            let _ = uefi::boot::uninstall_protocol_interface(
+                self.handle,
+                &LOAD_FILE2_GUID,
+                self.protocol.cast(),
+            );
+            let _ = uefi::boot::uninstall_protocol_interface(
+                self.handle,
+                &DEVICE_PATH_GUID,
+                self.dp.cast(),
+            );
+            drop(alloc::boxed::Box::from_raw(self.protocol));
+            drop(alloc::boxed::Box::from_raw(self.dp));
+        }
+    }
+}
+
 // install the LoadFile2 and InitrdDevicePath so kernel's efi stub  can pull the initrd from RAM, this is MANDATORY for
 // distributions that have their kernel/initrd on ISO9660 file system, if they are on EFI you can
 // just append initrd=<INITRD_PATH> to the cmdline
-pub fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result {
+pub fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result<InstalledInitrd> {
     // both structs must outlive this call: the stub reads them during start_image,
     // so leak them on purpose
     let proto: *mut LoadFile2Protocol =
@@ -100,7 +132,6 @@ pub fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result {
             data: initrd.as_ptr(),
             len: initrd.len(),
         }));
-    core::mem::forget(initrd);
     let dp: *mut InitrdDevicePath =
         alloc::boxed::Box::into_raw(alloc::boxed::Box::new(InitrdDevicePath {
             // MEDIA_DEVICE_PATH (0x04) / MEDIA_VENDOR_DP (0x03), length = 4 header + 16 guid
@@ -122,16 +153,22 @@ pub fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result {
     // LocateDevicePath(&LOAD_FILE2_GUID,  //
     // &initrd_device_path, // the dp
     // &out_handle) // the found handle
+    let handle;
     unsafe {
         // create the handle and attach the device path protocol to it
         let handle_tobefound_stub =
             uefi::boot::install_protocol_interface(None, &DEVICE_PATH_GUID, dp.cast())?;
         // install the loadfile2 protocol too
-        uefi::boot::install_protocol_interface(
+        handle = uefi::boot::install_protocol_interface(
             Some(handle_tobefound_stub),
             &LOAD_FILE2_GUID,
             proto.cast(),
         )?;
     }
-    Ok(())
+    Ok(InstalledInitrd {
+        handle,
+        protocol: proto,
+        dp,
+        initrd,
+    })
 }
