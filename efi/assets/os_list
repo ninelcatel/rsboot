@@ -1,0 +1,110 @@
+# OS catalog 
+# one distro per line, fields separated by |
+#
+#   family | edition | version | image type | boot | sha256 | url
+#
+#   image type = netinstall | minimal | full | live | netboot
+#   boot = ramdisk | memmap | loop | netboot
+#   edition / sha256 : '-' means none
+#
+# url filename = distro_edition_version.iso  
+# freebsd is an mfsBSD image
+
+# stable distros have latest 3 versions 
+AlmaLinux   | Minimal    | 10.2       | minimal    | ramdisk | - | http://10.0.2.2:8000/almalinux_minimal_10.2.iso
+AlmaLinux   | Minimal    | 9.8        | minimal    | ramdisk | - | http://10.0.2.2:8000/almalinux_minimal_9.8.iso
+AlmaLinux   | Minimal    | 8.10       | minimal    | ramdisk | - | http://10.0.2.2:8000/almalinux_minimal_8.10.iso
+AlmaLinux   | DVD        | 10.2       | full       | ramdisk | - | http://10.0.2.2:8000/almalinux_dvd_10.2.iso
+AlmaLinux   | DVD        | 9.8        | full       | ramdisk | - | http://10.0.2.2:8000/almalinux_dvd_9.8.iso
+AlmaLinux   | DVD        | 8.10       | full       | ramdisk | - | http://10.0.2.2:8000/almalinux_dvd_8.10.iso
+AlmaLinux   | KDE        | 10.2       | live       | ramdisk | - | http://10.0.2.2:8000/almalinux_kde_10.2.iso
+AlmaLinux   | GNOME      | 10.2       | live       | ramdisk | - | http://10.0.2.2:8000/almalinux_gnome_10.2.iso
+Alpine      | Standard   | 3.24.1     | minimal    | ramdisk | - | http://10.0.2.2:8000/alpine_standard_3.24.1.iso
+Alpine      | Standard   | 3.23.5     | minimal    | ramdisk | - | http://10.0.2.2:8000/alpine_standard_3.23.5.iso
+Alpine      | Standard   | 3.22.5     | minimal    | ramdisk | - | http://10.0.2.2:8000/alpine_standard_3.22.5.iso
+Alpine      | Extended   | 3.24.1     | full       | ramdisk | - | http://10.0.2.2:8000/alpine_extended_3.24.1.iso
+Alpine      | Extended   | 3.23.5     | full       | ramdisk | - | http://10.0.2.2:8000/alpine_extended_3.23.5.iso
+Alpine      | Extended   | 3.22.5     | full       | ramdisk | - | http://10.0.2.2:8000/alpine_extended_3.22.5.iso
+Debian      | -          | stable     | netinstall | ramdisk | - | http://10.0.2.2:8000/debian_stable.iso
+Debian      | -          | testing    | netinstall | ramdisk | - | http://10.0.2.2:8000/debian_testing.iso
+Debian      | -          | oldstable  | netinstall | ramdisk | - | http://10.0.2.2:8000/debian_oldstable.iso
+Kali        | Installer  | 2026.2     | minimal    | ramdisk | - | http://10.0.2.2:8000/kali_installer_2026.2.iso
+Kali        | Installer  | 2026.1     | minimal    | ramdisk | - | http://10.0.2.2:8000/kali_installer_2026.1.iso
+Kali        | Installer  | 2025.4     | minimal    | ramdisk | - | http://10.0.2.2:8000/kali_installer_2025.4.iso
+Kali        | Purple     | 2026.2     | minimal    | ramdisk | - | http://10.0.2.2:8000/kali_purple_2026.2.iso
+Manjaro     | KDE        | 26.1.0     | live       | ramdisk | - | http://10.0.2.2:8000/manjaro_kde_26.1.0.iso
+Manjaro     | KDE        | 26.0.4     | live       | ramdisk | - | http://10.0.2.2:8000/manjaro_kde_26.0.4.iso
+Manjaro     | GNOME      | 26.1.0     | live       | ramdisk | - | http://10.0.2.2:8000/manjaro_gnome_26.1.0.iso
+Manjaro     | GNOME      | 26.0.4     | live       | ramdisk | - | http://10.0.2.2:8000/manjaro_gnome_26.0.4.iso
+Manjaro     | Xfce       | 26.1.0     | live       | ramdisk | - | http://10.0.2.2:8000/manjaro_xfce_26.1.0.iso
+Manjaro     | Xfce       | 26.0.4     | live       | ramdisk | - | http://10.0.2.2:8000/manjaro_xfce_26.0.4.iso
+Mint        | Cinnamon   | 22.3       | live       | ramdisk | - | http://10.0.2.2:8000/mint_cinnamon_22.3.iso
+Mint        | Cinnamon   | 22.2       | live       | ramdisk | - | http://10.0.2.2:8000/mint_cinnamon_22.2.iso
+Mint        | Cinnamon   | 22.1       | live       | ramdisk | - | http://10.0.2.2:8000/mint_cinnamon_22.1.iso
+Mint        | MATE       | 22.3       | live       | ramdisk | - | http://10.0.2.2:8000/mint_mate_22.3.iso
+Mint        | MATE       | 22.2       | live       | ramdisk | - | http://10.0.2.2:8000/mint_mate_22.2.iso
+Mint        | MATE       | 22.1       | live       | ramdisk | - | http://10.0.2.2:8000/mint_mate_22.1.iso
+Mint        | Xfce       | 22.3       | live       | ramdisk | - | http://10.0.2.2:8000/mint_xfce_22.3.iso
+Mint        | Xfce       | 22.2       | live       | ramdisk | - | http://10.0.2.2:8000/mint_xfce_22.2.iso
+Mint        | Xfce       | 22.1       | live       | ramdisk | - | http://10.0.2.2:8000/mint_xfce_22.1.iso
+Nobara      | Official   | 43         | live       | ramdisk | - | http://10.0.2.2:8000/nobara_official_43.iso
+Nobara      | Official   | 42         | live       | ramdisk | - | http://10.0.2.2:8000/nobara_official_42.iso
+Nobara      | GNOME      | 43         | live       | ramdisk | - | http://10.0.2.2:8000/nobara_gnome_43.iso
+Nobara      | GNOME      | 42         | live       | ramdisk | - | http://10.0.2.2:8000/nobara_gnome_42.iso
+Nobara      | KDE        | 43         | live       | ramdisk | - | http://10.0.2.2:8000/nobara_kde_43.iso
+Nobara      | KDE        | 42         | live       | ramdisk | - | http://10.0.2.2:8000/nobara_kde_42.iso
+Nyarch      | GNOME      | 26.04      | live       | memmap  | - | http://10.0.2.2:8000/nyarch_gnome_26.04.iso
+Nyarch      | GNOME      | 25.04      | live       | memmap  | - | http://10.0.2.2:8000/nyarch_gnome_25.04.iso
+Nyarch      | KDE        | 26.04      | live       | memmap  | - | http://10.0.2.2:8000/nyarch_kde_26.04.iso
+Nyarch      | KDE        | 25.04      | live       | memmap  | - | http://10.0.2.2:8000/nyarch_kde_25.04.iso
+OpenBSD     | -          | 7.9        | minimal    | ramdisk | - | http://10.0.2.2:8000/openbsd_7.9.iso
+OpenBSD     | -          | 7.8        | minimal    | ramdisk | - | http://10.0.2.2:8000/openbsd_7.8.iso
+OpenBSD     | -          | 7.7        | minimal    | ramdisk | - | http://10.0.2.2:8000/openbsd_7.7.iso
+Pop!_OS     | Intel      | 24.04      | live       | ramdisk | - | http://10.0.2.2:8000/popos_intel_24.04.iso
+Pop!_OS     | Intel      | 22.04      | live       | ramdisk | - | http://10.0.2.2:8000/popos_intel_22.04.iso
+Pop!_OS     | NVIDIA     | 24.04      | live       | ramdisk | - | http://10.0.2.2:8000/popos_nvidia_24.04.iso
+Pop!_OS     | NVIDIA     | 22.04      | live       | ramdisk | - | http://10.0.2.2:8000/popos_nvidia_22.04.iso
+Rocky       | Minimal    | 10.2       | minimal    | ramdisk | - | http://10.0.2.2:8000/rocky_minimal_10.2.iso
+Rocky       | Minimal    | 9.8        | minimal    | ramdisk | - | http://10.0.2.2:8000/rocky_minimal_9.8.iso
+Rocky       | Minimal    | 8.10       | minimal    | ramdisk | - | http://10.0.2.2:8000/rocky_minimal_8.10.iso
+Rocky       | DVD        | 10.2       | full       | ramdisk | - | http://10.0.2.2:8000/rocky_dvd_10.2.iso
+Rocky       | DVD        | 9.8        | full       | ramdisk | - | http://10.0.2.2:8000/rocky_dvd_9.8.iso
+Rocky       | DVD        | 8.10       | full       | ramdisk | - | http://10.0.2.2:8000/rocky_dvd_8.10.iso
+TinyCore    | CLI        | 17.1       | minimal    | ramdisk | - | http://10.0.2.2:8000/tinycore_cli_17.1.iso
+TinyCore    | CLI        | 16.2       | minimal    | ramdisk | - | http://10.0.2.2:8000/tinycore_cli_16.2.iso
+TinyCore    | CLI        | 15.0       | minimal    | ramdisk | - | http://10.0.2.2:8000/tinycore_cli_15.0.iso
+TinyCore    | GUI        | 17.1       | live       | ramdisk | - | http://10.0.2.2:8000/tinycore_gui_17.1.iso
+TinyCore    | GUI        | 16.2       | live       | ramdisk | - | http://10.0.2.2:8000/tinycore_gui_16.2.iso
+TinyCore    | GUI        | 15.0       | live       | ramdisk | - | http://10.0.2.2:8000/tinycore_gui_15.0.iso
+Ubuntu      | -          | 26.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_26.04.iso
+Ubuntu      | -          | 25.10      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_25.10.iso
+Ubuntu      | -          | 24.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_24.04.iso
+Zorin       | -          | 18.1       | live       | ramdisk | - | http://10.0.2.2:8000/zorin_18.1.iso
+Zorin       | -          | 18         | live       | ramdisk | - | http://10.0.2.2:8000/zorin_18.iso
+Zorin       | -          | 17.3       | live       | ramdisk | - | http://10.0.2.2:8000/zorin_17.3.iso
+FreeBSD     | mfsBSD     | 14.2       | minimal    | ramdisk | - | http://10.0.2.2:8000/freebsd_mfsbsd_14.2.iso
+FreeBSD     | mfsBSD     | 14.1       | minimal    | ramdisk | - | http://10.0.2.2:8000/freebsd_mfsbsd_14.1.iso
+FreeBSD     | disc1      | 15.0       | full       | ramdisk | - | http://10.0.2.2:8000/freebsd_disc1_15.0.iso
+FreeBSD     | disc1      | 14.4       | full       | ramdisk | - | http://10.0.2.2:8000/freebsd_disc1_14.4.iso
+openSUSE    | Tumbleweed | rolling    | full       | memmap  | - | http://10.0.2.2:8000/opensuse_tumbleweed.iso
+openSUSE    | Leap       | 15.6       | full       | memmap  | - | http://10.0.2.2:8000/opensuse_leap_15.6.iso
+openSUSE    | Leap       | 15.5       | full       | memmap  | - | http://10.0.2.2:8000/opensuse_leap_15.5.iso
+
+# rolling release 
+
+Arch        | -          | 2026.08.01 | minimal    | memmap  | - | http://10.0.2.2:8000/arch_2026.08.01.iso
+Artix       | OpenRC     | 20260813   | minimal    | memmap  | - | http://10.0.2.2:8000/artix_openrc_20260813.iso
+Artix       | Runit      | 20260813   | minimal    | memmap  | - | http://10.0.2.2:8000/artix_runit_20260813.iso
+Artix       | KDE        | 20260813   | live       | memmap  | - | http://10.0.2.2:8000/artix_kde_20260813.iso
+Artix       | Xfce       | 20260813   | live       | memmap  | - | http://10.0.2.2:8000/artix_xfce_20260813.iso
+BlackArch   | Full       | 2023.04.01 | full       | memmap  | - | http://10.0.2.2:8000/blackarch_full_2023.04.01.iso
+BlackArch   | Slim       | 2023.05.01 | live       | memmap  | - | http://10.0.2.2:8000/blackarch_slim_2023.05.01.iso
+BlackArch   | NetInstall | 2023.04.01 | netinstall | memmap  | - | http://10.0.2.2:8000/blackarch_netinstall_2023.04.01.iso
+CachyOS     | -          | 260809     | live       | memmap  | - | http://10.0.2.2:8000/cachyos_260809.iso
+EndeavourOS | -          | 2026.04.27 | live       | memmap  | - | http://10.0.2.2:8000/endeavouros_2026.04.27.iso
+Garuda      | Dr460nized | 260815     | live       | ramdisk | - | http://10.0.2.2:8000/garuda_dr460nized_260815.iso
+Garuda      | GNOME      | 260808     | live       | ramdisk | - | http://10.0.2.2:8000/garuda_gnome_260808.iso
+Gentoo      | Console    | 20260811   | minimal    | loop    | - | http://10.0.2.2:8000/gentoo_console_20260811.iso
+NixOS       | -          | 25.11      | netboot    | netboot | - | http://10.0.2.2:8000/nixos.efi
+Void        | Base       | 20250202   | minimal    | ramdisk | - | http://10.0.2.2:8000/void_base_20250202.iso
+Void        | Xfce       | 20250202   | live       | ramdisk | - | http://10.0.2.2:8000/void_xfce_20250202.iso
