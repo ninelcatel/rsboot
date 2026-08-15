@@ -57,37 +57,27 @@ impl<'a> Tui<'a> {
         let col_start = self.cols / 5;
         let col_end = self.cols.saturating_sub(col_start);
         let width = col_end.saturating_sub(col_start);
-        let row_start = self.rows / 3;
-        let row_end = self.rows.saturating_sub(self.rows / 5);
+        let row_start = self.rows / 5;
+        let row_end = self.rows.saturating_sub(self.rows / 8);
         for r in row_start..row_end {
             self.out.set_cursor_position(col_start, r).ok();
             self.out.write_fmt(format_args!("{:width$}", "")).ok();
         }
     }
 
-    pub fn draw_menu(&mut self, selected: usize, items: &[&str], env: &environment::Env) {
+    // items can be &[&str] (family names) or &[String]
+    pub fn draw_menu<S: AsRef<str>>(
+        &mut self,
+        selected: usize,
+        items: &[S],
+        _env: &environment::Env,
+    ) {
         self.check_layout();
         self.clear_body();
 
-        match env {
-            environment::Env::Menu => {
-                for i in 0..items.len() {
-                    self.draw_item(items, i, selected);
-                }
-            }
-            environment::Env::Os => {
-                if let Some(&item) = items.get(selected) {
-                    self.draw_variants(item);
-                }
-            }
+        for i in 0..items.len() {
+            self.draw_item(items, i, selected);
         }
-    }
-
-    // menu screen for choosing OS version/type(netinst, full, chosenDE,etc)
-    fn draw_variants(&mut self, name: &str) {
-        self.out.set_color(Color::Magenta, RECT).ok();
-        self.center(name.len(), self.rows / 3);
-        self.out.write_fmt(format_args!("{name}")).ok();
     }
 
     // new render, rectangle for downloading screen
@@ -134,19 +124,20 @@ impl<'a> Tui<'a> {
             .ok();
     }
 
-    fn draw_item(&mut self, items: &[&str], i: usize, selected: usize) {
-        let Some(&item) = items.get(i) else { return };
+    fn draw_item<S: AsRef<str>>(&mut self, items: &[S], i: usize, selected: usize) {
+        let Some(item) = items.get(i) else { return };
+        let item = item.as_ref();
         if i == selected {
             self.out.set_color(Color::Magenta, RECT).ok();
         } else {
             self.out.set_color(Color::Black, RECT).ok();
         }
-        self.center(item.len(), self.rows / 3 + i);
+        self.center(item.len(), self.rows / 4 + i);
         self.out.write_fmt(format_args!("{item}")).ok();
     }
 
     // helper function to overwrite only the 2 affected selections
-    pub fn update_selection(&mut self, items: &[&str], old: usize, new: usize) {
+    pub fn update_selection<S: AsRef<str>>(&mut self, items: &[S], old: usize, new: usize) {
         self.draw_item(items, old, new);
         self.draw_item(items, new, new);
     }
@@ -166,24 +157,24 @@ impl<'a> Tui<'a> {
             / 2; // + 2 pentru spatii!"
         self.out.set_color(Color::Red, RECT).ok();
 
-        self.out.set_cursor_position(col, self.rows / 5).ok();
+        self.out.set_cursor_position(col, self.rows / 8).ok();
         self.out.write_fmt(format_args!("{TITLE}")).ok();
 
         self.out
-            .set_cursor_position(col + TITLE.len() + 1, self.rows / 5)
+            .set_cursor_position(col + TITLE.len() + 1, self.rows / 8)
             .ok();
         self.out.set_color(Color::Yellow, RECT).ok();
         self.out.write_fmt(format_args!("{PROJECT_TITLE}")).ok();
 
         self.out
-            .set_cursor_position(col + TITLE.len() + PROJECT_TITLE.len() + 1, self.rows / 5)
+            .set_cursor_position(col + TITLE.len() + PROJECT_TITLE.len() + 1, self.rows / 8)
             .ok();
         self.out.set_color(Color::Red, RECT).ok();
         self.out.write_fmt(format_args!("!")).ok();
 
         let col2 = self.cols.saturating_sub(SUBTITLE.len()) / 2;
 
-        self.out.set_cursor_position(col2, self.rows / 5 + 1).ok();
+        self.out.set_cursor_position(col2, self.rows / 8 + 1).ok();
         self.out.write_fmt(format_args!("{SUBTITLE}")).ok();
     }
 
@@ -198,7 +189,7 @@ impl<'a> Tui<'a> {
         let col_end = self.cols.saturating_sub(col_start);
         let width = col_end.saturating_sub(col_start);
 
-        let row_start = self.rows / 5;
+        let row_start = self.rows / 8;
         let row_end = self.rows.saturating_sub(row_start);
 
         for r in row_start..row_end {

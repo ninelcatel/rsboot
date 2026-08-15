@@ -1,7 +1,7 @@
 extern crate alloc;
 pub enum Env {
     Menu,
-    Os, // SOMETHING_ELSE,
+    Os,
 }
 
 #[derive(Clone, Copy)]
@@ -101,7 +101,7 @@ pub fn get_list() -> alloc::vec::Vec<OS<'static>> {
             }),
         }
     }
-    alloc::vec::Vec::new()
+    families
 }
 
 pub struct BootConfig {

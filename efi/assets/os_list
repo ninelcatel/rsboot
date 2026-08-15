@@ -1,11 +1,11 @@
 # OS catalog 
 # one distro per line, fields separated by |
 #
-#   family | edition | version | image type | boot | sha256 | url
+# family | edition | version | image type | boot | sha256 | url
 #
-#   image type = netinstall | minimal | full | live | netboot
-#   boot = ramdisk | memmap | loop | netboot
-#   edition / sha256 : '-' means none
+# image type = netinstall | minimal | full | live | netboot
+# boot = ramdisk | memmap | loop | netboot
+# edition / sha256 : '-' means none
 #
 # url filename = distro_edition_version.iso  
 # freebsd is an mfsBSD image
@@ -76,16 +76,17 @@ TinyCore    | CLI        | 15.0       | minimal    | ramdisk | - | http://10.0.2
 TinyCore    | GUI        | 17.1       | live       | ramdisk | - | http://10.0.2.2:8000/tinycore_gui_17.1.iso
 TinyCore    | GUI        | 16.2       | live       | ramdisk | - | http://10.0.2.2:8000/tinycore_gui_16.2.iso
 TinyCore    | GUI        | 15.0       | live       | ramdisk | - | http://10.0.2.2:8000/tinycore_gui_15.0.iso
-Ubuntu      | -          | 26.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_26.04.iso
-Ubuntu      | -          | 25.10      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_25.10.iso
-Ubuntu      | -          | 24.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_24.04.iso
+Ubuntu      | server     | 26.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_server_26.04.iso
+Ubuntu      | server     | 25.10      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_server_25.10.iso
+Ubuntu      | server     | 24.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_server_24.04.iso
+Ubuntu      | Desktop    | 26.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_desktop_26.04.iso
+Ubuntu      | Desktop    | 25.10      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_desktop_25.10.iso
+Ubuntu      | Desktop    | 24.04      | live       | ramdisk | - | http://10.0.2.2:8000/ubuntu_desktop_24.04.iso
 Zorin       | -          | 18.1       | live       | ramdisk | - | http://10.0.2.2:8000/zorin_18.1.iso
 Zorin       | -          | 18         | live       | ramdisk | - | http://10.0.2.2:8000/zorin_18.iso
 Zorin       | -          | 17.3       | live       | ramdisk | - | http://10.0.2.2:8000/zorin_17.3.iso
 FreeBSD     | mfsBSD     | 14.2       | minimal    | ramdisk | - | http://10.0.2.2:8000/freebsd_mfsbsd_14.2.iso
 FreeBSD     | mfsBSD     | 14.1       | minimal    | ramdisk | - | http://10.0.2.2:8000/freebsd_mfsbsd_14.1.iso
-FreeBSD     | disc1      | 15.0       | full       | ramdisk | - | http://10.0.2.2:8000/freebsd_disc1_15.0.iso
-FreeBSD     | disc1      | 14.4       | full       | ramdisk | - | http://10.0.2.2:8000/freebsd_disc1_14.4.iso
 openSUSE    | Tumbleweed | rolling    | full       | memmap  | - | http://10.0.2.2:8000/opensuse_tumbleweed.iso
 openSUSE    | Leap       | 15.6       | full       | memmap  | - | http://10.0.2.2:8000/opensuse_leap_15.6.iso
 openSUSE    | Leap       | 15.5       | full       | memmap  | - | http://10.0.2.2:8000/opensuse_leap_15.5.iso

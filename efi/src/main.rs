@@ -14,80 +14,8 @@ mod environment;
 mod handlers;
 
 use environment::Env;
-
+extern crate alloc;
 use crate::boot::boot;
-
-const OS: [environment::OS; 11] = [
-    environment::OS {
-        name: "Debian",
-        url: "http://ftp2.de.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u6/images/netboot/mini.iso",
-        sha256: Some("3cedd6f417cab308e2a9fbf4273435849ceeffef4568dc764c24c394fb815483"),
-        boot_method: environment::BootMethod::RamDisk,
-    },
-    environment::OS {
-        name: "Arch Linux",
-        url: "http://10.0.2.2:8000/arch.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::Memmap,
-    },
-    environment::OS {
-        name: "Ubuntu",
-        url: "http://10.0.2.2:8000/ubuntu.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::RamDisk,
-    },
-    environment::OS {
-        name: "Fedora",
-        url: "http://10.0.2.2:8000/fedora.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::RamDisk,
-    },
-    environment::OS {
-        name: "CachyOS",
-        url: "http://10.0.2.2:8000/cachy.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::Memmap,
-    },
-    environment::OS {
-        name: "Gentoo",
-        url: "http://10.0.2.2:8000/gentoo_gui.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::LoopInjection,
-    },
-    environment::OS {
-        name: "NixOS",
-        url: "http://10.0.2.2:8000/nixos.efi",
-        sha256: None,
-        boot_method: environment::BootMethod::Netboot,
-    },
-    environment::OS {
-        name: "Artix",
-        url: "http://10.0.2.2:8000/artix.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::Memmap,
-    },
-    environment::OS {
-        name: "openSUSE",
-        url: "http://10.0.2.2:8000/opensuse.iso",
-        sha256: None,
-        boot_method: environment::BootMethod::Memmap,
-    },
-    environment::OS {
-        name: "OpenBSD",
-        url: "http://10.0.2.2:8000/openbsd.iso",
-        sha256: Some("7a4a92e953618035097c796a90b54424a0f3ae775552e1e7d102cf8a5130449f"),
-        boot_method: environment::BootMethod::RamDisk,
-    },
-    // this is actually mfsBSD, but has FreeBSD kernel and userland
-    // read more at https://mfsbsd.vx.sk/
-    // login: root:mfsroot
-    environment::OS {
-        name: "FreeBSD",
-        url: "http://10.0.2.2:8000/freebsd_mfs.iso",
-        sha256: Some("2803be01ef284cb4d58c9177475c7a20ac72292e4943bc91eb159c592bfc3b5c"),
-        boot_method: environment::BootMethod::RamDisk,
-    },
-];
 
 #[entry]
 fn main() -> Status {
@@ -106,6 +34,10 @@ fn run() -> uefi::Result {
 
     let mut env = Env::Menu;
     let mut current_pick: usize = 0;
+    let mut family_picked: usize = 0;
+    let os = environment::get_list();
+    let names: alloc::vec::Vec<&str> = os.iter().map(|o| o.name).collect();
+    let mut children_names: alloc::vec::Vec<alloc::string::String> = alloc::vec![];
 
     system::with_stdout(|out| {
         let mut tui = draw::Tui::new(out);
@@ -128,8 +60,6 @@ fn run() -> uefi::Result {
                 }
             }
         };
-
-        let names: [&str; OS.len()] = core::array::from_fn(|i| OS[i].name);
         tui.draw_menu(current_pick, &names, &env);
 
         while running {
@@ -152,11 +82,27 @@ fn run() -> uefi::Result {
                     }
                     continue;
                 }
+                (Env::Os, Key::Special(ScanCode::UP)) => {
+                    let old = current_pick;
+                    current_pick = current_pick.saturating_sub(1);
+                    if current_pick != old {
+                        tui.update_selection(&children_names, old, current_pick);
+                    }
+                    continue;
+                }
                 (Env::Menu, Key::Special(ScanCode::DOWN)) => {
                     let old = current_pick;
-                    if current_pick + 1 < OS.len() {
+                    if current_pick + 1 < os.len() {
                         current_pick += 1;
                         tui.update_selection(&names, old, current_pick);
+                    }
+                    continue;
+                }
+                (Env::Os, Key::Special(ScanCode::DOWN)) => {
+                    let old = current_pick;
+                    if current_pick + 1 < os[family_picked].children.len() {
+                        current_pick += 1;
+                        tui.update_selection(&children_names, old, current_pick);
                     }
                     continue;
                 }
@@ -166,11 +112,38 @@ fn run() -> uefi::Result {
                 }
                 (Env::Menu, Key::Printable(c)) if c == enter => {
                     // enter the version picker menu for cufrent os
+
+                    family_picked = current_pick;
+                    current_pick = 0;
                     env = Env::Os;
+                    children_names = os[family_picked]
+                        .children
+                        .iter()
+                        .map(|f| {
+                            alloc::format!(
+                                "{} {} {} {}",
+                                os[family_picked].name,
+                                f.edition.unwrap_or(""),
+                                f.version,
+                                f.os_type
+                            )
+                        })
+                        .collect();
                 }
+
                 (Env::Os, Key::Printable(c)) if c == enter => {
-                    let os = &OS[current_pick];
-                    tui.begin_download(os.name);
+                    let name = &os[family_picked].name;
+                    let os = &os[family_picked].children[current_pick];
+                    tui.begin_download(
+                        alloc::format!(
+                            "{} {} {} {}",
+                            name,
+                            os.edition.unwrap_or(""),
+                            os.version,
+                            os.os_type
+                        )
+                        .as_str(),
+                    );
                     let mut last = usize::MAX;
                     let result = dl.get(os.url, os.boot_method.max_bytes(), |written, total| {
                         let pct = (written * 100).checked_div(total).unwrap_or(0);
@@ -209,11 +182,17 @@ fn run() -> uefi::Result {
                 }
                 (Env::Os, Key::Special(ScanCode::ESCAPE)) => {
                     env = Env::Menu;
+                    children_names.clear();
+                    current_pick = family_picked;
+                    family_picked = 0;
                 }
                 _ => continue,
             }
 
-            tui.draw_menu(current_pick, &names, &env);
+            match env {
+                Env::Menu => tui.draw_menu(current_pick, &names, &env),
+                Env::Os => tui.draw_menu(current_pick, &children_names, &env),
+            }
         }
     });
 
