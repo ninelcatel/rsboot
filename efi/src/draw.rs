@@ -57,8 +57,8 @@ impl<'a> Tui<'a> {
         let col_start = self.cols / 5;
         let col_end = self.cols.saturating_sub(col_start);
         let width = col_end.saturating_sub(col_start);
-        let row_start = self.rows / 5;
-        let row_end = self.rows.saturating_sub(self.rows / 8);
+        let row_start = self.rows / 8;
+        let row_end = self.rows.saturating_sub(self.rows / 12);
         for r in row_start..row_end {
             self.out.set_cursor_position(col_start, r).ok();
             self.out.write_fmt(format_args!("{:width$}", "")).ok();
@@ -132,7 +132,7 @@ impl<'a> Tui<'a> {
         } else {
             self.out.set_color(Color::Black, RECT).ok();
         }
-        self.center(item.len(), self.rows / 4 + i);
+        self.center(item.len(), self.rows / 8 + i + 2);
         self.out.write_fmt(format_args!("{item}")).ok();
     }
 
@@ -157,24 +157,24 @@ impl<'a> Tui<'a> {
             / 2; // + 2 pentru spatii!"
         self.out.set_color(Color::Red, RECT).ok();
 
-        self.out.set_cursor_position(col, self.rows / 8).ok();
+        self.out.set_cursor_position(col, self.rows / 12).ok();
         self.out.write_fmt(format_args!("{TITLE}")).ok();
 
         self.out
-            .set_cursor_position(col + TITLE.len() + 1, self.rows / 8)
+            .set_cursor_position(col + TITLE.len() + 1, self.rows / 12)
             .ok();
         self.out.set_color(Color::Yellow, RECT).ok();
         self.out.write_fmt(format_args!("{PROJECT_TITLE}")).ok();
 
         self.out
-            .set_cursor_position(col + TITLE.len() + PROJECT_TITLE.len() + 1, self.rows / 8)
+            .set_cursor_position(col + TITLE.len() + PROJECT_TITLE.len() + 1, self.rows / 12)
             .ok();
         self.out.set_color(Color::Red, RECT).ok();
         self.out.write_fmt(format_args!("!")).ok();
 
         let col2 = self.cols.saturating_sub(SUBTITLE.len()) / 2;
 
-        self.out.set_cursor_position(col2, self.rows / 8 + 1).ok();
+        self.out.set_cursor_position(col2, self.rows / 12 + 1).ok();
         self.out.write_fmt(format_args!("{SUBTITLE}")).ok();
     }
 
@@ -189,7 +189,7 @@ impl<'a> Tui<'a> {
         let col_end = self.cols.saturating_sub(col_start);
         let width = col_end.saturating_sub(col_start);
 
-        let row_start = self.rows / 8;
+        let row_start = self.rows / 12;
         let row_end = self.rows.saturating_sub(row_start);
 
         for r in row_start..row_end {
