@@ -29,7 +29,7 @@
 6. Verify the .iso checksums (done)
 7. Boot the verified .iso (done)
 8. Add OS catalog (mostly done, will probably add a Latest edition for **_easy_** maintaining)
-9. Add hardcoded paths for ARM architecture, the bootloader's file name is different, maybe change catalog too 
+9. Add aarch64 support (done)
 
 ## Phase 2: PXE/Network Boot via Docker
 1. PXE/Network boot container holding the .efi
