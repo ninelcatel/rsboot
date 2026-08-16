@@ -75,6 +75,18 @@ pub fn get_list() -> alloc::vec::Vec<OS<'static>> {
             "netboot" => BootMethod::Netboot,
             _ => continue,
         };
+        // ARM images contain "ARM" in their edition.
+        // don't expose aarch64 distros for x86_64
+        // architecture cpus and vice-versa
+        let is_arm = edition.contains("ARM");
+        #[cfg(target_arch = "aarch64")]
+        if !is_arm {
+            continue;
+        }
+        #[cfg(not(target_arch = "aarch64"))]
+        if is_arm {
+            continue;
+        }
         let edition = match edition {
             "-" => None,
             "" => continue,

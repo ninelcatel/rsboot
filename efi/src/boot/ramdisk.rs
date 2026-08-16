@@ -11,7 +11,11 @@ use crate::{
     handlers::{EFI_DEVICE_PATH, EFI_RAM_DISK_PROTOCOL, RAM_DISK_GUID, VIRTUAL_CD_GUID},
 };
 
+#[cfg(target_arch = "x86_64")]
 const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTX64.EFI");
+#[cfg(target_arch = "aarch64")]
+const BOOT_FILE: &uefi::CStr16 = uefi::cstr16!("\\EFI\\BOOT\\BOOTAA64.EFI");
+
 const RAM_DISK_DXE: &[u8] = include_bytes!("../../assets/RamDiskDxe.efi");
 
 pub(super) fn locate_ramdisk(handler: uefi::Handle) -> uefi::Result<uefi::Handle> {

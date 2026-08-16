@@ -27,9 +27,10 @@ Alpine      | Extended   | 3.23.5     | full       | ramdisk | - | http://10.0.2
 Alpine      | Extended   | 3.22.5     | full       | ramdisk | - | http://10.0.2.2:8000/alpine_extended_3.22.5.iso
 CentOS      | Stream     | 10         | full       | ramdisk | - | -
 CentOS      | Stream     | 9          | full       | ramdisk | - | -
-Debian      | -          | 13         | netinstall | ramdisk | - | -
-Debian      | -          | 12         | netinstall | ramdisk | - | -
-Debian      | -          | 11         | netinstall | ramdisk | - | -
+Debian      | -          | latest     | netinstall | ramdisk | - | http://10.0.2.2:8000/
+Debian      | -          | 12         | netinstall | ramdisk | - | http://10.0.2.2:8000/
+Debian      | -          | 11         | netinstall | ramdisk | - | http://10.0.2.2:8000/
+Debian      | ARM        | latest     | netinstall | ramdisk | - | http://10.0.2.2:8000/debian_aarch64.iso 
 Devuan      | -          | 5          | netinstall | ramdisk | - | -
 Devuan      | -          | 4          | netinstall | ramdisk | - | -
 ESXi        | -          | 8.0        | full       | ramdisk | - | -
