@@ -7,23 +7,38 @@
 
 ## Main app flow:
 
-1. Shows a TUI listing available distros.
-2. Acquire an IP via DHCP.
-3. Downloads the chosen installer ISO over HTTP from a proxy.
+1. Establish a DHCP connection.
+2. Shows a TUI listing available distros and their versions.
+3. Downloads the chosen installer ISO over HTTP from a mirror list, own server, or host.
 4. Loads the ISO into RAM, and boot into it to start the install process.
+5. Install OS 
 
-Will start with Linux only, Windows/BSD might or might not be implemented
 
-## Phase 1: .efi is directly flashed into QEMU 
-1. Building the TUI (in progress)
-2. Loading another local .efi and booting into it
-3. Booting into OS .iso loaded in RAM
-4. DHCP + HTTP get
-5. Verify the .iso (checksums)
-6. Boot the verified .iso
+## Phase 1: .efi is directly flashed into QEMU
+1. Building the **TUI** (done)
+2. Loading another local .efi and booting into it (done)
+3. Booting into OS .iso loaded in RAM (done)
+4. **DHCP** + **HTTP** get (done)
+5. Boot methods for distributions:
+  * Distros that ship RAM Disk support (mostly Debian/RHEL based and some BSD) : **RamDisk Boot** 
+  * Distros that don't have initramfs segment that scans the RAM for block devices (Arch based): **Memmap Boot** 
+	  [Artix needs PVD label, some other Arch based distros might need it too, and may or may not have a different cmdline parameter for the label (**misolabel or archisolabel**)] 
+  * Distros that need the full ISO injected in the initrd (Gentoo): **Loop Injection** Boot 
+  * Distros that ship an .efi and rely on network to work (NixOS): **Netboot** 
+(done)
+6. Verify the .iso checksums (done)
+7. Boot the verified .iso (done)
+8. Add OS catalog (mostly done, will probably add a Latest edition for **_easy_** maintaining)
+9. Add aarch64 support (done)
 
 ## Phase 2: PXE/Network Boot via Docker
-**To Do**
+1. PXE/Network boot container holding the .efi
+2. HTTP server on the container
+3. Configure network and the server to act as an PXE server 
+4. Python/Bash script job to routinely check for latest version 
+5. Get a VPS holding the OS iso files and make the OS catalog in regards to the public IP/domain
+6. Security measures for the VPS (with or without a proxy)
+7. Test each distribution.
 
 ## Work environment (Artix with dinit)
 
@@ -40,3 +55,11 @@ sudo dinitctl enable docker
 sudo dinitctl start docker
 
 ```
+
+## Rust crates used: 
+
+* [uefi](https://crates.io/crates/uefi) ([docs](https://docs.rs/uefi)): UEFI protocols + boot services
+* [hadris-iso](https://crates.io/crates/hadris-iso) ([docs](https://docs.rs/hadris-iso)): parse the ISO9660 from RAM (kernel/initrd/cmdline)
+* [hadris-io](https://crates.io/crates/hadris-io) ([docs](https://docs.rs/hadris-io)): read wrapper over the ISO bytes for hadris-iso
+* [sha2](https://crates.io/crates/sha2) ([docs](https://docs.rs/sha2)): sha256 integrity check for the iso
+

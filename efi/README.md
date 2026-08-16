@@ -1,21 +1,38 @@
 ## usage:
 
-### via cargo
-
+#### via cargo, replace paths accordingly:
 ```sh
+# aarch64-unknown-uefi 
 cargo build --target x86_64-unknown-uefi
 mkdir -p ../qemu/esp/efi/boot/
+# bootaa64.efi
 cp target/x86_64-unknown-uefi/debug/rsboot.efi ../qemu/esp/efi/boot/bootx64.efi
 ```
 
 ### via Make
 
 ```sh
-make build
-make install #builds and copies it to ../qemu 
+make build             # x86_64, debug target (default)
+make install           # builds and copies bootx64.efi to ../qemu/esp/efi/boot/bootx64.efi
+
+make build ARCH=aarch64    # builds arm64 instead 
+make install ARCH=aarch64  # copies to bootaa64.efi instead
+
+make install RELEASE=1     # optimized build 
 ```
 
-## GUIDs  that may or may not be used from [edk2 repo](https://github.com/tianocore/edk2/blob/master/MdePkg/MdePkg.dec):
+## dependencies
+
+* **rustup**: installer for rust compiler, cargo and targets 
+* **uefi-rs**: UEFI crate for protocols, drivers, TUI, etc, base for the app 
+* **hadris-iso**: parse the ISO9660 from RAM (kernel/initrd/cmdline)
+* **hadris-io**: read wrapper over the ISO bytes for hadris-iso
+* **sha2**: integrity check for the iso 
+
+
+
+
+### GUIDs  that may or may not be used from [edk2 repo](https://github.com/tianocore/edk2/blob/master/MdePkg/MdePkg.dec):
 
 
 ``` 

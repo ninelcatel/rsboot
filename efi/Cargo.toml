@@ -6,3 +6,6 @@ edition = "2024"
 [dependencies]
 log = "0.4.33"
 uefi = { version = "0.39.0", features = ["alloc", "global_allocator", "logger", "panic_handler"] }
+hadris-iso = { version = "1.2.1", default-features = false, features = ["read", "alloc", "sync"] }
+hadris-io = { version = "1.2.1", default-features = false, features = ["sync", "alloc"] }
+sha2 = { version = "0.11", default-features = false }
