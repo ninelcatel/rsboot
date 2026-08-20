@@ -24,6 +24,8 @@ endif
 EFI      := target/$(TARGET)/$(PROFILE)/rsboot.efi
 ESP_DIR  := ../qemu/esp/efi/boot
 ESP_EFI  := $(ESP_DIR)/$(BOOT_EFI)
+TFTP_DIR := ../homelab/efi
+TFTP_EFI := $(TFTP_DIR)/$(BOOT_EFI)
 
 .PHONY: build install clean
 
@@ -33,6 +35,7 @@ build:
 install: build
 	mkdir -p $(ESP_DIR)
 	cp $(EFI) $(ESP_EFI)
-
+	mkdir -p $(TFTP_DIR)
+	cp $(EFI) $(TFTP_EFI)
 clean:
 	cargo clean

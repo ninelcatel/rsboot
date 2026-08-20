@@ -29,7 +29,18 @@ QEMU_ARM := qemu-system-aarch64 -machine virt -cpu cortex-a57 -m $(MEM) $(DISPLA
   -device virtio-net-pci,netdev=n0 -netdev user,id=n0 \
   -device virtio-rng-pci
 
-.PHONY: setup run run-app run-arm clean
+BRIDGE ?= bridge-pxe
+TAP    ?= tap0
+
+QEMU_PXE := qemu-system-x86_64 -enable-kvm -cpu host -machine q35 -m $(MEM) \
+	-drive if=pflash,format=raw,readonly=on,file=$(OVMF_CODE) \
+	-drive if=pflash,format=raw,file=$(OVMF_VARS) \
+	-device virtio-vga,xres=1280,yres=800 \
+	-netdev tap,id=n0,ifname=$(TAP),script=no,downscript=no \
+	-device virtio-net-pci,netdev=n0 \
+	-boot n
+
+.PHONY: setup run run-app run-arm run-pxe clean
 
 setup: $(OVMF_CODE) $(OVMF_VARS)
 
@@ -53,5 +64,8 @@ run-arm: $(AAVMF_VARS)
 	@test -f esp/efi/boot/bootaa64.efi || { echo "missing esp/efi/boot/bootaa64.efi ! build it with 'cd ../efi && make install ARCH=aarch64'"; exit 1; }
 	$(QEMU_ARM) -drive format=raw,file=fat:rw:esp
 
+run-pxe: setup
+	$(QEMU_PXE)
+
 clean:
-	rm -rf esp $(AAVMF_VARS)
+	rm -rf esp $(AAVMF_VARS) $(OVMF_CODE) $(OVMF_VARS)

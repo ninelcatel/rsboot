@@ -1,0 +1,29 @@
+services: 
+  pxe:
+    build: ./pxe
+    container_name: pxe
+    cap_add:
+        - NET_ADMIN
+        - NET_RAW
+    networks:
+      lan: { ipv4_address: 192.168.100.2 }
+    volumes:
+      - ./efi:/srv/tftp:ro
+      - ./pxe/dnsmasq.conf:/etc/dnsmasq.conf:ro
+
+  mirror:
+    image: nginx:alpine
+    container_name: mirror
+    networks:
+      lan: { ipv4_address: 192.168.100.3 }
+    volumes:
+      - ./os:/usr/share/nginx/html:ro
+
+networks:
+  lan:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: bridge-pxe
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
