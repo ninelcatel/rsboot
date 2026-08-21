@@ -31,3 +31,11 @@ __you can do this on the same server, but i suggest doing it separately__
   4. `docker compose up -d --build`
   
 ##### See [QEMU directory](../qemu/) to test it out.
+
+##### To actually deploy this via `Docker`, you'd need to do the following:
+  * Change both containers' network to be bound to the host (network-mode set in [docker-compose](./docker-compose.yml))
+  * Change the [dnsmasq.conf](./pxe/dnsmasq.conf) to the host's NIC (check via `ip link`)
+  * Add a static IPv4 address to the host's NIC
+  * Point the (os list)[../efi/assets/os_list] to the same address (the mirror is now bound to the host IP), you might need to rebuild `rsboot.efi`
+  * Ensure your host and the client are on the **same** lan
+  * Ensure you don't have another DHCP service active (for example, a router)
