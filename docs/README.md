@@ -32,13 +32,15 @@
 9. Add aarch64 support (done)
 
 ## Phase 2: PXE/Network Boot via Docker
-1. PXE/Network boot container holding the .efi
-2. HTTP server on the container
-3. Configure network and the server to act as an PXE server 
+1. PXE/Network boot container holding the .efi (done)
+2. HTTP server on the container (done)
+3. Configure network and the server to act as an PXE server (done)
 4. Python/Bash script job to routinely check for latest version 
 5. Get a VPS holding the OS iso files and make the OS catalog in regards to the public IP/domain
 6. Security measures for the VPS (with or without a proxy)
 7. Test each distribution.
+
+See [../homelab/README.md](../homelab/README.md) for the local homelab setup (dnsmasq + nginx, bare-metal or Docker) and [../qemu/README.md](../qemu/README.md) `make run-pxe` for testing it under QEMU.
 
 ## Work environment (Artix with dinit)
 

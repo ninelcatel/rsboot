@@ -95,6 +95,7 @@ See [`efi/README.md`](efi/README.md) for build details and [`qemu/README.md`](qe
   to maintain as much memory safety as possilbe.  
 - **Phase 2: self-hosted network boot (in progress):** PXE container, a self-hosted HTTP
   mirror with a cron job for rolling distros, host a VPS and update the catalog to the VPS public ip, and full distro boot testing.
+  Local **__minimal__** setup (dnsmasq + nginx, bare-metal or Docker) in [`homelab/README.md`](homelab/README.md), test it under QEMU with `make run-pxe` ([`qemu/README.md`](qemu/README.md)).
 
 Full breakdown in [`docs/README.md`](docs/README.md).
 
