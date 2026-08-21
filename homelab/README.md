@@ -30,4 +30,4 @@ __you can do this on the same server, but i suggest doing it separately__
   3. Change the subnets in the [Docker Compose](./docker-compose.yml) and in [dnsmasq config](./pxe/dnsmasq.conf) if you wish.
   4. `docker compose up -d --build`
   
-##### See [QEMU directory](../qemu/) if you want to test it out via QEMU first.
+##### See [QEMU directory](../qemu/) to test it out.
