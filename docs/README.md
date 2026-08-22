@@ -42,6 +42,16 @@
 
 See [../homelab/README.md](../homelab/README.md) for the local homelab setup (dnsmasq + nginx, bare-metal or Docker) and [../qemu/README.md](../qemu/README.md) `make run-pxe` for testing it under QEMU.
 
+## Firmware embedding (experimental, works on EDK2 firmware, tested with QEMU)
+
+Embed `rsboot.efi` into an edk2 build as its own boot option, so it launches straight from the firmware, no USB/CD/PXE needed.
+
+1. Embed `rsboot.efi` into an edk2 build as its own boot option (done)
+2. Python script that applies every edk2 edit for you (done)
+3. Flashing an actual motherboard
+
+See [../firmware-embed/README.md](../firmware-embed/README.md) for the guide and the `embed-rsboot.py` automation.
+
 ## Work environment (Artix with dinit)
 
 ```sh
