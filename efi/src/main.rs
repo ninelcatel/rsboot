@@ -106,6 +106,16 @@ fn run() -> uefi::Result {
                     }
                     continue;
                 }
+                (Env::Menu, Key::Special(ScanCode::RIGHT)) => {
+                    current_pick = (current_pick + tui.per_page()).min(os.len().saturating_sub(1));
+                }
+                (Env::Os, Key::Special(ScanCode::RIGHT)) => {
+                    let len = os[family_picked].children.len();
+                    current_pick = (current_pick + tui.per_page()).min(len.saturating_sub(1));
+                }
+                (_, Key::Special(ScanCode::LEFT)) => {
+                    current_pick = current_pick.saturating_sub(tui.per_page());
+                }
                 (Env::Menu, Key::Special(ScanCode::ESCAPE)) => {
                     running = false;
                     tui.clear_screen();

@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use core::fmt::Write;
 use uefi::{
     proto::console::text::{Color, Key, Output},
@@ -10,6 +12,7 @@ const RECT: Color = Color::LightGray;
 const TITLE: &str = "Welcome to";
 const SUBTITLE: &str = "Please select the OS you wish to install.";
 const PROJECT_TITLE: &str = "rsboot";
+const FOOTNOTE: &str = "Please use arrow keys for page navigation";
 
 pub struct Tui<'a> {
     out: &'a mut Output,
@@ -54,11 +57,15 @@ impl<'a> Tui<'a> {
     // clear only the inside of the rect
     fn clear_body(&mut self) {
         self.out.set_color(Color::Black, RECT).ok();
+
         let col_start = self.cols / 5;
         let col_end = self.cols.saturating_sub(col_start);
         let width = col_end.saturating_sub(col_start);
-        let row_start = self.rows / 8;
-        let row_end = self.rows.saturating_sub(self.rows / 12);
+
+        // keep the title and the footnote rows intact
+        let row_start = self.rows / 12 + 2;
+        let row_end = self.rows.saturating_sub(self.rows / 12 + 1);
+
         for r in row_start..row_end {
             self.out.set_cursor_position(col_start, r).ok();
             self.out.write_fmt(format_args!("{:width$}", "")).ok();
@@ -73,11 +80,42 @@ impl<'a> Tui<'a> {
         _env: &environment::Env,
     ) {
         self.check_layout();
-        self.clear_body();
+        self.draw_page(items, selected);
+    }
 
-        for i in 0..items.len() {
-            self.draw_item(items, i, selected);
+    // how many items fit in the rectangle, from the first item down to
+    // the footnote, based on the rect dimensions
+    pub fn per_page(&self) -> usize {
+        let first_row = self.rows / 8 + 2;
+        let footnote_row = self.rows.saturating_sub(self.rows / 12 + 1);
+        footnote_row.saturating_sub(first_row).max(1)
+    }
+
+    fn draw_page<S: AsRef<str>>(&mut self, items: &[S], selected: usize) {
+        self.clear_body();
+        let per = self.per_page();
+        let start = (selected / per) * per;
+        let end = (start + per).min(items.len());
+
+        for i in start..end {
+            self.draw_item(items, i, selected, i - start);
         }
+        self.draw_page_counter(items.len(), selected, per);
+    }
+
+    fn draw_page_counter(&mut self, total_items: usize, selected: usize, per: usize) {
+        let pages = total_items.div_ceil(per).max(1);
+        let label = if pages > 1 {
+            alloc::format!("{}/{}", selected / per + 1, pages)
+        } else {
+            alloc::string::String::new()
+        };
+        let col_end = self.cols.saturating_sub(self.cols / 5);
+        let col = col_end.saturating_sub(10);
+
+        self.out.set_color(Color::Blue, RECT).ok();
+        self.out.set_cursor_position(col, self.rows / 12).ok();
+        self.out.write_fmt(format_args!("{label:>10}")).ok();
     }
 
     // new render, rectangle for downloading screen
@@ -124,22 +162,30 @@ impl<'a> Tui<'a> {
             .ok();
     }
 
-    fn draw_item<S: AsRef<str>>(&mut self, items: &[S], i: usize, selected: usize) {
+    fn draw_item<S: AsRef<str>>(&mut self, items: &[S], i: usize, selected: usize, slot: usize) {
         let Some(item) = items.get(i) else { return };
         let item = item.as_ref();
+
         if i == selected {
             self.out.set_color(Color::Magenta, RECT).ok();
         } else {
             self.out.set_color(Color::Black, RECT).ok();
         }
-        self.center(item.len(), self.rows / 8 + i + 2);
+
+        self.center(item.len(), self.rows / 8 + slot + 2);
         self.out.write_fmt(format_args!("{item}")).ok();
     }
 
     // helper function to overwrite only the 2 affected selections
     pub fn update_selection<S: AsRef<str>>(&mut self, items: &[S], old: usize, new: usize) {
-        self.draw_item(items, old, new);
-        self.draw_item(items, new, new);
+        let per = self.per_page();
+        if old / per != new / per {
+            // page changed, redraw page
+            self.draw_page(items, new);
+        } else {
+            self.draw_item(items, old, new, old % per);
+            self.draw_item(items, new, new, new % per);
+        }
     }
 
     fn get_dimensions(out: &Output) -> (usize, usize) {
@@ -176,6 +222,15 @@ impl<'a> Tui<'a> {
 
         self.out.set_cursor_position(col2, self.rows / 12 + 1).ok();
         self.out.write_fmt(format_args!("{SUBTITLE}")).ok();
+
+        self.out.set_color(Color::Magenta, RECT).ok();
+        self.out
+            .set_cursor_position(
+                self.cols.saturating_sub(FOOTNOTE.len()) / 2,
+                self.rows.saturating_sub(self.rows / 12) - 1,
+            )
+            .ok();
+        self.out.write_fmt(format_args!("{FOOTNOTE}")).ok();
     }
 
     fn center(&mut self, len: usize, row: usize) {
