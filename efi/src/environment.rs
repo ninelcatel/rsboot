@@ -34,9 +34,10 @@ pub struct OS<'a> {
     pub children: alloc::vec::Vec<OsChild<'a>>,
 }
 
-pub fn get_list() -> alloc::vec::Vec<OS<'static>> {
-    let list = include_str!("../assets/os_list");
-    let mut families: alloc::vec::Vec<OS<'static>> = alloc::vec::Vec::new();
+pub fn get_list<'a>(public_list: Option<&'a str>) -> alloc::vec::Vec<OS<'a>> {
+    let mut families: alloc::vec::Vec<OS<'a>> = alloc::vec::Vec::new();
+    let list = public_list.unwrap_or(include_str!("../assets/os_list"));
+
     for line in list.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with("#") {

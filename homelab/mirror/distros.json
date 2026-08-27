@@ -1,5 +1,5 @@
 {
-  "mirror": "http://192.168.100.3",
+  "mirror": "http://192.168.44.3",
   "distros": [
     {
       "family": "AlmaLinux",

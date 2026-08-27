@@ -6,18 +6,20 @@ services:
         - NET_ADMIN
         - NET_RAW
     networks:
-      lan: { ipv4_address: 192.168.100.2 }
+      lan: { ipv4_address: 192.168.44.2 }
     volumes:
       - ./efi:/srv/tftp:ro
       - ./pxe/dnsmasq.conf:/etc/dnsmasq.conf:ro
 
   mirror:
-    image: nginx:alpine
+    build: ./mirror
     container_name: mirror
     networks:
-      lan: { ipv4_address: 192.168.100.3 }
+      lan: { ipv4_address: 192.168.44.3 }
     volumes:
-      - ./os:/usr/share/nginx/html:ro
+      - ../../Downloads/os/new_os/:/usr/share/nginx/html
+      - ./mirror/update_distros.py:/home/update_distros.py:ro
+      - ./mirror/distros.json:/home/distros.json:ro
 
 networks:
   lan:
@@ -26,4 +28,4 @@ networks:
       com.docker.network.bridge.name: bridge-pxe
     ipam:
       config:
-        - subnet: 192.168.100.0/24
+        - subnet: 192.168.44.0/24
