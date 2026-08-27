@@ -41,8 +41,10 @@ def fetch(url):
     return r.text
 
 def upstreamed_hashes(text):
-    return (h.lower() for h in SHA256.findall(text),
-            h.lower() for h in SHA512.findall(text))
+    return (
+        {h.lower() for h in SHA256.findall(text)},
+        {h.lower() for h in SHA512.findall(text)},
+    )
 
 def find_iso_url(text, checksum_url):
     names = []
@@ -72,7 +74,7 @@ def hash_file(path):
 
 
 def download(url, path, pub256, pub512):
-     os.makedirs(os.path.dirname(path), exist_ok=True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     temp = path + ".temp"
     
     h256 = hashlib.sha256()
@@ -136,8 +138,11 @@ if __name__ == "__main__":
 
     # json for keeping track of hashes for latest edition distros 
     hashes_path = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), "hashes.json")
-    with open(hashes_path) as f:
-        hashes = json.load(f)
+    if os.path.exists(hashes_path):
+        with open(hashes_path) as f:
+            hashes = json.load(f)
+    else:
+        hashes = {}
 
     rows = []
 
@@ -150,22 +155,23 @@ if __name__ == "__main__":
         latest = d.get("latest")
         if latest:
             try:
+                # a family can have several editions
+                key = latest["file"]
                 text = fetch(latest["checksum-url"])
                 pub256, pub512 = upstreamed_hashes(text)
-                entry = hashes.get(family)
-                
+                entry = hashes.get(key)
+
                 if not entry and os.path.exists(latest["path"]):
                     # calculate the hash of the local file and save it to check if an update is necessary
                     s256, s512 = hash_file(latest["path"])
                     entry = {"sha256": s256, "sha512": s512}
-                
+
                 if not is_current(entry, pub256, pub512):
                     url = find_iso_url(text, latest["checksum-url"])
-                    
-                    s256, s512 = download(url, latestt["path"], pub256, pub512)
+                    s256, s512 = download(url, latest["path"], pub256, pub512)
                     entry = {"sha256": s256, "sha512": s512}
-                
-                hashes[family] = entry
+
+                hashes[key] = entry
                 rows.append([family, edition, "latest", image, boot, entry["sha256"], f"{mirror}/{latest['file']}"])
             except Exception as e:
                 print(f"[fail] {family}: {e}")
@@ -174,6 +180,6 @@ if __name__ == "__main__":
             rows.append([family, edition, h["version"], image, boot, h.get("sha256", "-"), f"{mirror}/{h['file']}"])
     
     with open(hashes_path,"w") as f:
-        json.dump(f)
+        json.dump(hashes, f)
     
     write_os_list(rows, sys.argv[2])
