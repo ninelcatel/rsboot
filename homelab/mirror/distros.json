@@ -1,0 +1,1274 @@
+{
+  "mirror": "http://192.168.44.3",
+  "distros": [
+    {
+      "family": "AlmaLinux",
+      "edition": "Minimal",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://repo.almalinux.org/almalinux/10.2/isos/x86_64/CHECKSUM",
+        "file": "almalinux_minimal_latest.iso",
+        "path": "/usr/share/nginx/html/almalinux_minimal_latest.iso"
+      },
+      "history": [
+        {
+          "version": "10.2",
+          "file": "almalinux_minimal_10.2.iso"
+        },
+        {
+          "version": "9.8",
+          "file": "almalinux_minimal_9.8.iso"
+        },
+        {
+          "version": "8.10",
+          "file": "almalinux_minimal_8.10.iso"
+        }
+      ]
+    },
+    {
+      "family": "AlmaLinux",
+      "edition": "DVD",
+      "image": "full",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "10.2",
+          "file": "almalinux_dvd_10.2.iso"
+        },
+        {
+          "version": "9.8",
+          "file": "almalinux_dvd_9.8.iso"
+        },
+        {
+          "version": "8.10",
+          "file": "almalinux_dvd_8.10.iso"
+        }
+      ]
+    },
+    {
+      "family": "AlmaLinux",
+      "edition": "KDE",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "10.2",
+          "file": "almalinux_kde_10.2.iso"
+        }
+      ]
+    },
+    {
+      "family": "AlmaLinux",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "10.2",
+          "file": "almalinux_gnome_10.2.iso"
+        }
+      ]
+    },
+    {
+      "family": "AlmaLinux",
+      "edition": "ARM",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://repo.almalinux.org/almalinux/10.2/isos/aarch64/CHECKSUM",
+        "file": "almalinux_aarch64.iso",
+        "path": "/usr/share/nginx/html/almalinux_aarch64.iso"
+      }
+    },
+    {
+      "family": "Alpine",
+      "edition": "Standard",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-standard-3.24.1-x86_64.iso.sha256",
+        "file": "alpine_standard_latest.iso",
+        "path": "/usr/share/nginx/html/alpine_standard_latest.iso"
+      },
+      "history": [
+        {
+          "version": "3.24.1",
+          "file": "alpine_standard_3.24.1.iso"
+        },
+        {
+          "version": "3.23.5",
+          "file": "alpine_standard_3.23.5.iso"
+        },
+        {
+          "version": "3.22.5",
+          "file": "alpine_standard_3.22.5.iso"
+        }
+      ]
+    },
+    {
+      "family": "Alpine",
+      "edition": "Extended",
+      "image": "full",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "3.24.1",
+          "file": "alpine_extended_3.24.1.iso"
+        },
+        {
+          "version": "3.23.5",
+          "file": "alpine_extended_3.23.5.iso"
+        },
+        {
+          "version": "3.22.5",
+          "file": "alpine_extended_3.22.5.iso"
+        }
+      ]
+    },
+    {
+      "family": "Alpine",
+      "edition": "ARM",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-standard-3.24.1-aarch64.iso.sha256",
+        "file": "alpine_aarch64.iso",
+        "path": "/usr/share/nginx/html/alpine_aarch64.iso"
+      }
+    },
+    {
+      "family": "CentOS",
+      "edition": "Stream",
+      "image": "full",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/iso/CentOS-Stream-10-latest-x86_64-dvd1.iso.SHA256SUM",
+        "file": "centos_stream_latest.iso",
+        "path": "/usr/share/nginx/html/centos_stream_latest.iso"
+      },
+      "history": [
+        {
+          "version": "10",
+          "file": "centos_stream_10.iso"
+        },
+        {
+          "version": "9",
+          "file": "centos_stream_9.iso"
+        }
+      ]
+    },
+    {
+      "family": "Debian",
+      "edition": "-",
+      "image": "netinstall",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA256SUMS",
+        "file": "debian_latest.iso",
+        "path": "/usr/share/nginx/html/debian_latest.iso"
+      },
+      "history": [
+        {
+          "version": "12",
+          "file": "debian_12.iso"
+        },
+        {
+          "version": "11",
+          "file": "debian_11.iso"
+        }
+      ]
+    },
+    {
+      "family": "Debian",
+      "edition": "ARM",
+      "image": "netinstall",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/SHA256SUMS",
+        "file": "debian_aarch64.iso",
+        "path": "/usr/share/nginx/html/debian_aarch64.iso"
+      }
+    },
+    {
+      "family": "Devuan",
+      "edition": "-",
+      "image": "netinstall",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://files.devuan.org/devuan_daedalus/installer-iso/SHA256SUMS.txt",
+        "file": "devuan_latest.iso",
+        "path": "/usr/share/nginx/html/devuan_latest.iso"
+      },
+      "history": [
+        {
+          "version": "5",
+          "file": "devuan_5.iso"
+        },
+        {
+          "version": "4",
+          "file": "devuan_4.iso"
+        }
+      ]
+    },
+    {
+      "family": "ESXi",
+      "edition": "-",
+      "image": "full",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "8.0",
+          "file": "esxi_8.0.iso"
+        },
+        {
+          "version": "7.0",
+          "file": "esxi_7.0.iso"
+        }
+      ]
+    },
+    {
+      "family": "Fedora",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Workstation/x86_64/iso/Fedora-Workstation-44-1.7-x86_64-CHECKSUM",
+        "file": "fedora_gnome_latest.iso",
+        "path": "/usr/share/nginx/html/fedora_gnome_latest.iso"
+      },
+      "history": [
+        {
+          "version": "43",
+          "file": "fedora_gnome_43.iso"
+        },
+        {
+          "version": "42",
+          "file": "fedora_gnome_42.iso"
+        },
+        {
+          "version": "41",
+          "file": "fedora_gnome_41.iso"
+        }
+      ]
+    },
+    {
+      "family": "Fedora",
+      "edition": "KDE",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "43",
+          "file": "fedora_kde_43.iso"
+        },
+        {
+          "version": "42",
+          "file": "fedora_kde_42.iso"
+        },
+        {
+          "version": "41",
+          "file": "fedora_kde_41.iso"
+        }
+      ]
+    },
+    {
+      "family": "Kali",
+      "edition": "Installer",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://cdimage.kali.org/current/SHA256SUMS",
+        "file": "kali_installer_latest.iso",
+        "path": "/usr/share/nginx/html/kali_installer_latest.iso"
+      },
+      "history": [
+        {
+          "version": "2026.2",
+          "file": "kali_installer_2026.2.iso"
+        },
+        {
+          "version": "2026.1",
+          "file": "kali_installer_2026.1.iso"
+        },
+        {
+          "version": "2025.4",
+          "file": "kali_installer_2025.4.iso"
+        }
+      ]
+    },
+    {
+      "family": "Kali",
+      "edition": "Purple",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "2026.2",
+          "file": "kali_purple_2026.2.iso"
+        }
+      ]
+    },
+    {
+      "family": "Kali",
+      "edition": "ARM",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://cdimage.kali.org/current/SHA256SUMS",
+        "file": "kali_aarch64.iso",
+        "path": "/usr/share/nginx/html/kali_aarch64.iso"
+      }
+    },
+    {
+      "family": "Manjaro",
+      "edition": "KDE",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.manjaro.org/kde/26.1.0/manjaro-kde-26.1.0-260812-linux71.iso.sha256",
+        "file": "manjaro_kde_latest.iso",
+        "path": "/usr/share/nginx/html/manjaro_kde_latest.iso"
+      },
+      "history": [
+        {
+          "version": "26.1.0",
+          "file": "manjaro_kde_26.1.0.iso"
+        },
+        {
+          "version": "26.0.4",
+          "file": "manjaro_kde_26.0.4.iso"
+        }
+      ]
+    },
+    {
+      "family": "Manjaro",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.1.0",
+          "file": "manjaro_gnome_26.1.0.iso"
+        },
+        {
+          "version": "26.0.4",
+          "file": "manjaro_gnome_26.0.4.iso"
+        }
+      ]
+    },
+    {
+      "family": "Manjaro",
+      "edition": "Xfce",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.1.0",
+          "file": "manjaro_xfce_26.1.0.iso"
+        },
+        {
+          "version": "26.0.4",
+          "file": "manjaro_xfce_26.0.4.iso"
+        }
+      ]
+    },
+    {
+      "family": "Mint",
+      "edition": "Cinnamon",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://mirrors.edge.kernel.org/linuxmint/stable/22.3/sha256sum.txt",
+        "file": "mint_cinnamon_latest.iso",
+        "path": "/usr/share/nginx/html/mint_cinnamon_latest.iso"
+      },
+      "history": [
+        {
+          "version": "22.3",
+          "file": "mint_cinnamon_22.3.iso"
+        },
+        {
+          "version": "22.2",
+          "file": "mint_cinnamon_22.2.iso"
+        },
+        {
+          "version": "22.1",
+          "file": "mint_cinnamon_22.1.iso"
+        }
+      ]
+    },
+    {
+      "family": "Mint",
+      "edition": "MATE",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "22.3",
+          "file": "mint_mate_22.3.iso"
+        },
+        {
+          "version": "22.2",
+          "file": "mint_mate_22.2.iso"
+        },
+        {
+          "version": "22.1",
+          "file": "mint_mate_22.1.iso"
+        }
+      ]
+    },
+    {
+      "family": "Mint",
+      "edition": "Xfce",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "22.3",
+          "file": "mint_xfce_22.3.iso"
+        },
+        {
+          "version": "22.2",
+          "file": "mint_xfce_22.2.iso"
+        },
+        {
+          "version": "22.1",
+          "file": "mint_xfce_22.1.iso"
+        }
+      ]
+    },
+    {
+      "family": "Nobara",
+      "edition": "Official",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://nobara-images.nobaraproject.org/Nobara-43-Official-2026-04-19.iso.sha256sum",
+        "file": "nobara_official_latest.iso",
+        "path": "/usr/share/nginx/html/nobara_official_latest.iso"
+      },
+      "history": [
+        {
+          "version": "43",
+          "file": "nobara_official_43.iso"
+        },
+        {
+          "version": "42",
+          "file": "nobara_official_42.iso"
+        }
+      ]
+    },
+    {
+      "family": "Nobara",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "43",
+          "file": "nobara_gnome_43.iso"
+        },
+        {
+          "version": "42",
+          "file": "nobara_gnome_42.iso"
+        }
+      ]
+    },
+    {
+      "family": "Nobara",
+      "edition": "KDE",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "43",
+          "file": "nobara_kde_43.iso"
+        },
+        {
+          "version": "42",
+          "file": "nobara_kde_42.iso"
+        }
+      ]
+    },
+    {
+      "family": "OpenBSD",
+      "edition": "-",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://cdn.openbsd.org/pub/OpenBSD/7.9/amd64/SHA256",
+        "file": "openbsd_latest.iso",
+        "path": "/usr/share/nginx/html/openbsd_latest.iso"
+      },
+      "history": [
+        {
+          "version": "7.9",
+          "file": "openbsd_7.9.iso"
+        },
+        {
+          "version": "7.8",
+          "file": "openbsd_7.8.iso"
+        },
+        {
+          "version": "7.7",
+          "file": "openbsd_7.7.iso"
+        }
+      ]
+    },
+    {
+      "family": "Parrot",
+      "edition": "Security",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://deb.parrot.sh/parrot/iso/7.3/signed-hashes.txt",
+        "file": "parrot_security_latest.iso",
+        "path": "/usr/share/nginx/html/parrot_security_latest.iso"
+      }
+    },
+    {
+      "family": "Parrot",
+      "edition": "Home",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://deb.parrot.sh/parrot/iso/7.3/signed-hashes.txt",
+        "file": "parrot_home_latest.iso",
+        "path": "/usr/share/nginx/html/parrot_home_latest.iso"
+      }
+    },
+    {
+      "family": "Pop!_OS",
+      "edition": "Intel",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://iso.pop-os.org/24.04/amd64/intel/20/SHA256SUMS",
+        "file": "popos_intel_latest.iso",
+        "path": "/usr/share/nginx/html/popos_intel_latest.iso"
+      },
+      "history": [
+        {
+          "version": "24.04",
+          "file": "popos_intel_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Pop!_OS",
+      "edition": "NVIDIA",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "24.04",
+          "file": "popos_nvidia_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Proxmox",
+      "edition": "-",
+      "image": "full",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "8.3",
+          "file": "proxmox_8.3.iso"
+        },
+        {
+          "version": "8.2",
+          "file": "proxmox_8.2.iso"
+        }
+      ]
+    },
+    {
+      "family": "Rocky",
+      "edition": "Minimal",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.rockylinux.org/pub/rocky/10.2/isos/x86_64/CHECKSUM",
+        "file": "rocky_minimal_latest.iso",
+        "path": "/usr/share/nginx/html/rocky_minimal_latest.iso"
+      },
+      "history": [
+        {
+          "version": "10.2",
+          "file": "rocky_minimal_10.2.iso"
+        },
+        {
+          "version": "9.8",
+          "file": "rocky_minimal_9.8.iso"
+        },
+        {
+          "version": "8.10",
+          "file": "rocky_minimal_8.10.iso"
+        }
+      ]
+    },
+    {
+      "family": "Rocky",
+      "edition": "DVD",
+      "image": "full",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "10.2",
+          "file": "rocky_dvd_10.2.iso"
+        },
+        {
+          "version": "9.8",
+          "file": "rocky_dvd_9.8.iso"
+        },
+        {
+          "version": "8.10",
+          "file": "rocky_dvd_8.10.iso"
+        }
+      ]
+    },
+    {
+      "family": "Rocky",
+      "edition": "ARM",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.rockylinux.org/pub/rocky/10.2/isos/aarch64/CHECKSUM",
+        "file": "rocky_aarch64.iso",
+        "path": "/usr/share/nginx/html/rocky_aarch64.iso"
+      }
+    },
+    {
+      "family": "Tails",
+      "edition": "-",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "6",
+          "file": "tails_6.iso"
+        }
+      ]
+    },
+    {
+      "family": "TinyCore",
+      "edition": "CLI",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "17.1",
+          "file": "tinycore_cli_17.1.iso"
+        },
+        {
+          "version": "16.2",
+          "file": "tinycore_cli_16.2.iso"
+        },
+        {
+          "version": "15.0",
+          "file": "tinycore_cli_15.0.iso"
+        }
+      ]
+    },
+    {
+      "family": "TinyCore",
+      "edition": "GUI",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "17.1",
+          "file": "tinycore_gui_17.1.iso"
+        },
+        {
+          "version": "16.2",
+          "file": "tinycore_gui_16.2.iso"
+        },
+        {
+          "version": "15.0",
+          "file": "tinycore_gui_15.0.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Server",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://releases.ubuntu.com/26.04/SHA256SUMS",
+        "file": "ubuntu_server_latest.iso",
+        "path": "/usr/share/nginx/html/ubuntu_server_latest.iso"
+      },
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_server_26.04.iso"
+        },
+        {
+          "version": "25.10",
+          "file": "ubuntu_server_25.10.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_server_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Desktop",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_desktop_26.04.iso"
+        },
+        {
+          "version": "25.10",
+          "file": "ubuntu_desktop_25.10.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_desktop_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Kubuntu",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_kubuntu_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_kubuntu_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Xubuntu",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_xubuntu_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_xubuntu_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Lubuntu",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_lubuntu_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_lubuntu_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "MATE",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "25.10",
+          "file": "ubuntu_mate_25.10.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_mate_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Budgie",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_budgie_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_budgie_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Studio",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_studio_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_studio_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Cinnamon",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_cinnamon_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_cinnamon_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "Unity",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "ubuntu_unity_26.04.iso"
+        },
+        {
+          "version": "24.04",
+          "file": "ubuntu_unity_24.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Ubuntu",
+      "edition": "ARM",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://cdimage.ubuntu.com/releases/26.04/release/SHA256SUMS",
+        "file": "ubuntu_aarch64.iso",
+        "path": "/usr/share/nginx/html/ubuntu_aarch64.iso"
+      }
+    },
+    {
+      "family": "Zorin",
+      "edition": "-",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://mirrors.edge.kernel.org/zorinos/18/SHA256SUMS.txt",
+        "file": "zorin_latest.iso",
+        "path": "/usr/share/nginx/html/zorin_latest.iso"
+      },
+      "history": [
+        {
+          "version": "18.1",
+          "file": "zorin_18.1.iso"
+        },
+        {
+          "version": "18",
+          "file": "zorin_18.iso"
+        },
+        {
+          "version": "17.3",
+          "file": "zorin_17.3.iso"
+        }
+      ]
+    },
+    {
+      "family": "FreeBSD",
+      "edition": "mfsBSD",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://mfsbsd.vx.sk/files/iso/14/amd64/mfsbsd-14.2-RELEASE-amd64.iso.sums.txt",
+        "file": "freebsd_mfsbsd_latest.iso",
+        "path": "/usr/share/nginx/html/freebsd_mfsbsd_latest.iso"
+      },
+      "history": [
+        {
+          "version": "14.2",
+          "file": "freebsd_mfsbsd_14.2.iso"
+        },
+        {
+          "version": "14.1",
+          "file": "freebsd_mfsbsd_14.1.iso"
+        }
+      ]
+    },
+    {
+      "family": "openSUSE",
+      "edition": "Leap",
+      "image": "full",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "15.6",
+          "file": "opensuse_leap_15.6.iso"
+        },
+        {
+          "version": "15.5",
+          "file": "opensuse_leap_15.5.iso"
+        }
+      ]
+    },
+    {
+      "family": "Arch",
+      "edition": "-",
+      "image": "minimal",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "https://geo.mirror.pkgbuild.com/iso/latest/sha256sums.txt",
+        "file": "arch_latest.iso",
+        "path": "/usr/share/nginx/html/arch_latest.iso"
+      }
+    },
+    {
+      "family": "Artix",
+      "edition": "OpenRC",
+      "image": "minimal",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "https://mirror1.artixlinux.org/iso/sha256sums",
+        "file": "artix_openrc_latest.iso",
+        "path": "/usr/share/nginx/html/artix_openrc_latest.iso"
+      }
+    },
+    {
+      "family": "Artix",
+      "edition": "Runit",
+      "image": "minimal",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "20260813",
+          "file": "artix_runit_20260813.iso"
+        }
+      ]
+    },
+    {
+      "family": "Artix",
+      "edition": "Dinit",
+      "image": "minimal",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "20260813",
+          "file": "artix_dinit_20260813.iso"
+        }
+      ]
+    },
+    {
+      "family": "Artix",
+      "edition": "KDE",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "20260813",
+          "file": "artix_kde_20260813.iso"
+        }
+      ]
+    },
+    {
+      "family": "Artix",
+      "edition": "Xfce",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "20260813",
+          "file": "artix_xfce_20260813.iso"
+        }
+      ]
+    },
+    {
+      "family": "Bazzite",
+      "edition": "Desktop",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.bazzite.gg/bazzite-stable-amd64.iso-CHECKSUM",
+        "file": "bazzite_desktop_latest.iso",
+        "path": "/usr/share/nginx/html/bazzite_desktop_latest.iso"
+      }
+    },
+    {
+      "family": "Bazzite",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.bazzite.gg/bazzite-gnome-stable-amd64.iso-CHECKSUM",
+        "file": "bazzite_gnome_latest.iso",
+        "path": "/usr/share/nginx/html/bazzite_gnome_latest.iso"
+      }
+    },
+    {
+      "family": "Bazzite",
+      "edition": "Deck",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://download.bazzite.gg/bazzite-deck-stable-amd64.iso-CHECKSUM",
+        "file": "bazzite_deck_latest.iso",
+        "path": "/usr/share/nginx/html/bazzite_deck_latest.iso"
+      }
+    },
+    {
+      "family": "BlackArch",
+      "edition": "Full",
+      "image": "full",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "2023.04.01",
+          "file": "blackarch_full_2023.04.01.iso"
+        }
+      ]
+    },
+    {
+      "family": "BlackArch",
+      "edition": "Slim",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "2023.05.01",
+          "file": "blackarch_slim_2023.05.01.iso"
+        }
+      ]
+    },
+    {
+      "family": "BlackArch",
+      "edition": "NetInstall",
+      "image": "netinstall",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "2023.04.01",
+          "file": "blackarch_netinstall_2023.04.01.iso"
+        }
+      ]
+    },
+    {
+      "family": "CachyOS",
+      "edition": "-",
+      "image": "live",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "https://iso.cachyos.org/desktop/260809/cachyos-desktop-linux-260809.iso.sha256",
+        "file": "cachyos_latest.iso",
+        "path": "/usr/share/nginx/html/cachyos_latest.iso"
+      }
+    },
+    {
+      "family": "EndeavourOS",
+      "edition": "-",
+      "image": "live",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "https://mirror.alpix.eu/endeavouros/iso/EndeavourOS_Titan-Neo-2026.04.27.iso.sha512sum",
+        "file": "endeavouros_latest.iso",
+        "path": "/usr/share/nginx/html/endeavouros_latest.iso"
+      }
+    },
+    {
+      "family": "Garuda",
+      "edition": "Dr460nized",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://iso.builds.garudalinux.org/iso/latest/garuda/dr460nized/latest.iso.sha256",
+        "file": "garuda_dr460nized_latest.iso",
+        "path": "/usr/share/nginx/html/garuda_dr460nized_latest.iso"
+      }
+    },
+    {
+      "family": "Garuda",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://iso.builds.garudalinux.org/iso/latest/garuda/gnome/latest.iso.sha256",
+        "file": "garuda_gnome_latest.iso",
+        "path": "/usr/share/nginx/html/garuda_gnome_latest.iso"
+      }
+    },
+    {
+      "family": "Gentoo",
+      "edition": "Console",
+      "image": "minimal",
+      "boot": "loop",
+      "latest": {
+        "checksum-url": "https://distfiles.gentoo.org/releases/amd64/autobuilds/current-install-amd64-minimal/install-amd64-minimal-20260823T153057Z.iso.sha256",
+        "file": "gentoo_console_latest.iso",
+        "path": "/usr/share/nginx/html/gentoo_console_latest.iso"
+      }
+    },
+    {
+      "family": "NixOS",
+      "edition": "-",
+      "image": "netboot",
+      "boot": "netboot",
+      "history": [
+        {
+          "version": "25.11",
+          "file": "nixos.efi"
+        }
+      ]
+    },
+    {
+      "family": "Nyarch",
+      "edition": "GNOME",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "nyarch_gnome_26.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "Nyarch",
+      "edition": "KDE",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "26.04",
+          "file": "nyarch_kde_26.04.iso"
+        }
+      ]
+    },
+    {
+      "family": "openSUSE",
+      "edition": "Tumbleweed",
+      "image": "full",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "http://download.opensuse.org/tumbleweed/iso/openSUSE-Tumbleweed-DVD-x86_64-Current.iso.sha256",
+        "file": "opensuse_tumbleweed_latest.iso",
+        "path": "/usr/share/nginx/html/opensuse_tumbleweed_latest.iso"
+      }
+    },
+    {
+      "family": "openSUSE",
+      "edition": "Slowroll",
+      "image": "full",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "http://download.opensuse.org/slowroll/iso/openSUSE-Slowroll-DVD-x86_64-Media.iso.sha256",
+        "file": "opensuse_slowroll_latest.iso",
+        "path": "/usr/share/nginx/html/opensuse_slowroll_latest.iso"
+      }
+    },
+    {
+      "family": "openSUSE",
+      "edition": "MicroOS",
+      "image": "full",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "http://download.opensuse.org/tumbleweed/appliances/iso/openSUSE-MicroOS.x86_64-SelfInstall.iso.sha256",
+        "file": "opensuse_microos_latest.iso",
+        "path": "/usr/share/nginx/html/opensuse_microos_latest.iso"
+      }
+    },
+    {
+      "family": "openSUSE",
+      "edition": "Kalpa",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "16.0",
+          "file": "opensuse_kalpa_16.0.iso"
+        }
+      ]
+    },
+    {
+      "family": "openSUSE",
+      "edition": "ARM",
+      "image": "full",
+      "boot": "memmap",
+      "latest": {
+        "checksum-url": "http://download.opensuse.org/ports/aarch64/tumbleweed/iso/openSUSE-Tumbleweed-DVD-aarch64-Current.iso.sha256",
+        "file": "opensuse_aarch64.iso",
+        "path": "/usr/share/nginx/html/opensuse_aarch64.iso"
+      }
+    },
+    {
+      "family": "SteamOS",
+      "edition": "HoloISO",
+      "image": "live",
+      "boot": "memmap",
+      "history": [
+        {
+          "version": "20240603",
+          "file": "steamos_holoiso_20240603.iso"
+        }
+      ]
+    },
+    {
+      "family": "Void",
+      "edition": "Base",
+      "image": "minimal",
+      "boot": "ramdisk",
+      "latest": {
+        "checksum-url": "https://repo-default.voidlinux.org/live/current/sha256sum.txt",
+        "file": "void_base_latest.iso",
+        "path": "/usr/share/nginx/html/void_base_latest.iso"
+      }
+    },
+    {
+      "family": "Void",
+      "edition": "Xfce",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "20250202",
+          "file": "void_xfce_20250202.iso"
+        }
+      ]
+    },
+    {
+      "family": "Void",
+      "edition": "ARM",
+      "image": "live",
+      "boot": "ramdisk",
+      "history": [
+        {
+          "version": "20250202",
+          "file": "void_aarch64_20250202.iso"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+services: 
+  pxe:
+    build: ./pxe
+    container_name: pxe
+    cap_add:
+        - NET_ADMIN
+        - NET_RAW
+    networks:
+      lan: { ipv4_address: 192.168.44.2 }
+    volumes:
+      - ./efi:/srv/tftp:ro
+      - ./pxe/dnsmasq.conf:/etc/dnsmasq.conf:ro
+
+  mirror:
+    build: ./mirror
+    container_name: mirror
+    dns: [1.1.1.1, 8.8.8.8]
+    networks:
+      lan: { ipv4_address: 192.168.44.3 }
+    volumes:
+      - ../../Downloads/os/new_os/:/usr/share/nginx/html
+      - ./mirror/update_distros.py:/home/update_distros.py:ro
+      - ./mirror/distros.json:/home/distros.json:ro
+
+networks:
+  lan:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: bridge-pxe
+    ipam:
+      config:
+        - subnet: 192.168.44.0/24

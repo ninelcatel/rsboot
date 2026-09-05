@@ -82,6 +82,7 @@ pub struct Downloader {
 }
 
 impl Downloader {
+    const LIST_URL: &str = "http://192.168.44.3/os_list";
     pub fn connect() -> uefi::Result<Self> {
         let nic = uefi::boot::get_handle_for_protocol::<uefi::proto::network::http::HttpBinding>()?;
         let mut ip = uefi::proto::network::ip4config2::Ip4Config2::new(nic)?;
@@ -89,34 +90,16 @@ impl Downloader {
         Ok(Self { nic })
     }
 
-    pub fn get(
+    pub fn get_os(
         &self,
         url: &str,
         max_bytes: Option<usize>,
         mut in_progress: impl FnMut(usize, usize) -> bool,
     ) -> uefi::Result<IsoBuffer> {
-        // one httphelper instance per download, dropped when this fn returs in order to not get
-        // Status::TIMEOUT err when restablishing TCP coneciton
-        let mut http = uefi::proto::network::http::HttpHelper::new(self.nic)?;
-        http.configure()?;
+        let (mut http, first) = self.fetch(url)?;
 
-        http.request_get(url)?;
-        let first = http.response_first(true)?;
-        //translates to if http resp status != http 200, couldve used HttpStatus but i need to
-        //import another crate and i cba
-        if first.status.0 != 3 {
-            return Err(uefi::Status::PROTOCOL_ERROR.into());
-        };
         // we need Content-Length to size the buffer and know when its done
-        let mut len = None;
-        for (key, val) in &first.headers {
-            if key.eq_ignore_ascii_case("content-length") {
-                len = val.trim().parse().ok();
-                break;
-            }
-        }
-
-        let len = len.ok_or(uefi::Status::UNSUPPORTED)?;
+        let len = Self::content_length(&first).ok_or(uefi::Status::UNSUPPORTED)?;
 
         // this is for the Loop injection method, cpio has a 4GB limit
         // therefore an iso with loop inject > 4GB will crash
@@ -127,11 +110,9 @@ impl Downloader {
 
         // the first response might have more than the headers, so append to the buffer
         let mut written = iso.write(0, &first.body);
-
         if written != first.body.len() {
             return Err(uefi::Status::BUFFER_TOO_SMALL.into());
         }
-
         if !in_progress(written, len) {
             return Err(uefi::Status::ABORTED.into());
         }
@@ -159,5 +140,59 @@ impl Downloader {
             return Err(uefi::Status::NOT_READY.into());
         }
         Ok(iso)
+    }
+
+    // http get to the mirror, if theres anyythign wrong,
+    // return None and use built in OS_LIST
+    pub fn get_list(&self) -> Option<alloc::string::String> {
+        let (mut http, first) = self.fetch(Self::LIST_URL).ok()?;
+        let len = Self::content_length(&first)?;
+
+        let mut list = alloc::vec::Vec::with_capacity(len);
+        list.extend_from_slice(&first.body);
+        let mut data = alloc::vec::Vec::new();
+        while list.len() < len {
+            data.clear();
+            let chunk = http.response_more(&mut data).ok()?;
+            if chunk.is_empty() {
+                break;
+            }
+            list.extend_from_slice(chunk);
+        }
+        if list.len() < len {
+            return None; // short read -> fall back to built-in
+        }
+        alloc::string::String::from_utf8(list).ok()
+    }
+
+    // parse Content-Length from response headers
+    fn content_length(resp: &uefi::proto::network::http::HttpHelperResponse) -> Option<usize> {
+        for (key, val) in &resp.headers {
+            if key.eq_ignore_ascii_case("content-length") {
+                return val.trim().parse().ok();
+            }
+        }
+        None
+    }
+    fn fetch(
+        &self,
+        url: &str,
+    ) -> uefi::Result<(
+        uefi::proto::network::http::HttpHelper,
+        uefi::proto::network::http::HttpHelperResponse,
+    )> {
+        // one httphelper instance per download, dropped when this fn returs in order to not get
+        // Status::TIMEOUT err when restablishing TCP coneciton
+        let mut http = uefi::proto::network::http::HttpHelper::new(self.nic)?;
+        http.configure()?;
+
+        http.request_get(url)?;
+        let first = http.response_first(true)?;
+        //translates to if http resp status != http 200, couldve used HttpStatus but i need to
+        //import another crate and i cba
+        if first.status.0 != 3 {
+            return Err(uefi::Status::PROTOCOL_ERROR.into());
+        };
+        Ok((http, first))
     }
 }

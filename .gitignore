@@ -1,3 +1,6 @@
 *.fd
 esp/
 target/
+os/
+*.efi
+*.iso

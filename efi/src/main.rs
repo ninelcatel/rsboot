@@ -35,9 +35,6 @@ fn run() -> uefi::Result {
     let mut env = Env::Menu;
     let mut current_pick: usize = 0;
     let mut family_picked: usize = 0;
-    let os = environment::get_list();
-    let names: alloc::vec::Vec<&str> = os.iter().map(|o| o.name).collect();
-    let mut children_names: alloc::vec::Vec<alloc::string::String> = alloc::vec![];
 
     system::with_stdout(|out| {
         let mut tui = draw::Tui::new(out);
@@ -60,8 +57,12 @@ fn run() -> uefi::Result {
                 }
             }
         };
-        tui.draw_menu(current_pick, &names, &env);
+        let list = dl.get_list();
+        let os = environment::get_list(list.as_deref());
+        let names: alloc::vec::Vec<&str> = os.iter().map(|o| o.name).collect();
+        let mut children_names: alloc::vec::Vec<alloc::string::String> = alloc::vec![];
 
+        tui.draw_menu(current_pick, &names, &env);
         while running {
             let key = system::with_stdin(|input| {
                 if let Ok(event) = input.wait_for_key_event() {
@@ -106,6 +107,16 @@ fn run() -> uefi::Result {
                     }
                     continue;
                 }
+                (Env::Menu, Key::Special(ScanCode::RIGHT)) => {
+                    current_pick = (current_pick + tui.per_page()).min(os.len().saturating_sub(1));
+                }
+                (Env::Os, Key::Special(ScanCode::RIGHT)) => {
+                    let len = os[family_picked].children.len();
+                    current_pick = (current_pick + tui.per_page()).min(len.saturating_sub(1));
+                }
+                (_, Key::Special(ScanCode::LEFT)) => {
+                    current_pick = current_pick.saturating_sub(tui.per_page());
+                }
                 (Env::Menu, Key::Special(ScanCode::ESCAPE)) => {
                     running = false;
                     tui.clear_screen();
@@ -135,7 +146,7 @@ fn run() -> uefi::Result {
                     let os = &os[family_picked].children[current_pick];
                     tui.begin_download(children_names[current_pick].as_str());
                     let mut last = usize::MAX;
-                    let result = dl.get(os.url, os.boot_method.max_bytes(), |written, total| {
+                    let result = dl.get_os(os.url, os.boot_method.max_bytes(), |written, total| {
                         let pct = (written * 100).checked_div(total).unwrap_or(0);
                         if pct != last {
                             last = pct;

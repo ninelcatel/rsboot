@@ -22,7 +22,9 @@ make setup     # copies OVMF_CODE.fd and OVMF_VARS.fd here
 make run          # boot firmware only 
 make run MEM=4G   # needed for iso files >500mb
 make run NOGRAPHIC=1 # terminal/serial approach
-make run-app      # x86_64
+make run-app      # x86_64, boots the .efi from the local esp/
+make run-arm      # aarch64 (see below)
+make run-pxe      # network boot against the Docker homelab (see below)
 make clean        # remove generated esp
 ```
 
@@ -40,11 +42,44 @@ cp <efi_path> esp/efi/boot/bootx64.efi
 make run-app
 ```
 
-### for testing locally, create a <<dir>> that holds the .iso files and start http serever there, QEMU maps 10.0.2.2 to localhost by default so its faster to test like this rather than actual mirrors
+### for testing locally, create a <<dir>> that holds the .iso files and start http serever there, QEMU maps 10.0.2.2 to localhost by default so its faster to test like this rather than actual mirrors 
+>**(make sure OS catalog URL is 10.0.2.2:8000)**
 
 ```
 python3 -m http.server 8000 --directory <<dir>>
 ```
+
+--- 
+
+### PXE / network boot (against the Docker homelab)
+
+`make run-pxe` puts the NIC on a tap attached to the `bridge-pxe` bridge, so the VM is on the same L2 layer as the **PXE** and **Mirror** servers. See [../homelab/README.md](../homelab/README.md) for the homelab itself.
+
+1. Bring the homelab up first: 
+```sh
+cd ../homelab && docker compose up -d --build
+```
+
+2. Create a tap and attach it to that bridge: 
+```sh
+sudo ip tuntap add dev tap0 mode tap user $(id -un)
+sudo ip link set tap0 master bridge-pxe
+sudo ip link set tap0 up
+```
+
+3. Boot:
+
+```sh
+# defaults: TAP=tap0 BRIDGE=bridge-pxe
+make run-pxe
+make run-pxe [TAP=tap-name BRIDGE=bridge-name]   
+```
+
+4. Clean up
+```sh
+sudo ip link del tap0
+```
+--- 
 ## reference
 
 Rust UEFI Book  <https://rust-osdev.github.io/uefi-rs/tutorial/vm.html>

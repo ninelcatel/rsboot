@@ -23,6 +23,8 @@ with a live progress bar and ESC-to-abort.
 4. **Verify**: sha256 integrity check (catches corrupt downloads).
 5. **Boot**: hand off to the installer using the right boot method for the OS.
 
+![](./docs/app.gif)
+
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{
   'fontFamily':'monospace','fontSize':'13px',
@@ -90,11 +92,35 @@ See [`efi/README.md`](efi/README.md) for build details and [`qemu/README.md`](qe
 ---
 ## Status
 
-- **Phase 1: diskless ISO loading (essentially complete):** TUI, DHCP+HTTP, all four
-  boot methods, checksum verification, and the OS catalog are implemented while trying
-  to maintain as much memory safety as possilbe.  
-- **Phase 2: self-hosted network boot (in progress):** PXE container, a self-hosted HTTP
-  mirror with a cron job for rolling distros, host a VPS and update the catalog to the VPS public ip, and full distro boot testing.
+### Phase 1: ISO loading 
 
-Full breakdown in [`docs/README.md`](docs/README.md).
+- [x] TUI menu (distro family → version)
+- [x] DHCP + HTTP download straight into RAM
+- [x] All four boot methods: `RamDisk`, `Memmap`, `LoopInjection`, `Netboot`
+- [x] sha256 integrity verification
+- [x] On-device OS catalog
+- [x] `aarch64` support
+
+> Written to keep as much memory safety as possible. 
+
+### Phase 2: self-hosted network boot
+
+- [x] PXE/DHCP container serving `rsboot.efi`
+- [x] HTTP mirror container for the OS images
+- [ ] Fetch the catalog at runtime, same format as [`os_list`](efi/assets/os_list), with the bundled one kept as a fallback
+- [ ] VPS hosting the mirror + a small Python cron job, **only** for Latest-edition/rolling-release distros 
+- [ ] End-to-end boot test for every distro
+
+> Local **minimal** setup (dnsmasq + nginx, bare-metal or Docker) lives in
+> [`homelab/README.md`](homelab/README.md); test it under QEMU with `make run-pxe ([`qemu/README.md`](qemu/README.md)).
+
+### Firmware embedding, experimental, works on EDK2 TianoCore, tested with QEMU
+
+- [x] Embed `rsboot.efi` into an OVMF/edk2 build as its own boot option 
+- [x] Python script that applies every edk2 edit for you
+- [ ] Flashing an actual motherboard with it
+
+>Guide in [`firmware-embed/README.md`](firmware-embed/README.md)
+
+>Full Status breakdown in [`docs/README.md`](docs/README.md).
 
