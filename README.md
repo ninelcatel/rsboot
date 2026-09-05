@@ -107,12 +107,13 @@ See [`efi/README.md`](efi/README.md) for build details and [`qemu/README.md`](qe
 
 - [x] PXE/DHCP container serving `rsboot.efi`
 - [x] HTTP mirror container for the OS images
-- [ ] Fetch the catalog at runtime, same format as [`os_list`](efi/assets/os_list), with the bundled one kept as a fallback
-- [ ] VPS hosting the mirror + a small Python cron job, **only** for Latest-edition/rolling-release distros 
+- [x] Fetch the catalog at runtime, same format as [`os_list`](efi/assets/os_list), with the bundled one kept as a fallback
+- [x] Small Python cron job, **only** for Latest-edition/rolling-release distros 
+- [x] VPS hosting the mirror
 - [ ] End-to-end boot test for every distro
 
 > Local **minimal** setup (dnsmasq + nginx, bare-metal or Docker) lives in
-> [`homelab/README.md`](homelab/README.md); test it under QEMU with `make run-pxe ([`qemu/README.md`](qemu/README.md)).
+> [`homelab/README.md`](homelab/README.md); test it under QEMU with `make run-pxe`([qemu/README.md](qemu/README.md)).
 
 ### Firmware embedding, experimental, works on EDK2 TianoCore, tested with QEMU
 
