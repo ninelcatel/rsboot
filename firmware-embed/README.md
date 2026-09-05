@@ -1,6 +1,6 @@
 # Embedding rsboot into UEFI firmware 
 
-How to embed `rsboot.efi` **into** an UEFI firmware image as an UEFI application with its own boot entry, so it launches straight from the ROM. No ESP, no USB, no PXE server. 
+How to embed `rsboot.efi` **into** an UEFI firmware image as an UEFI application with its own boot entry, so it launches straight from the ROM.
 
 ## SAFETY CAUTION!
 This guide targets **OVMF under QEMU**. Flashing a **real** motherboard ROM is vendor-specific, can **BREAK** it. Use at your own RISK. 
@@ -44,7 +44,7 @@ mkdir OvmfPkg/Rsboot
 cp /path/to/rsboot.efi OvmfPkg/Rsboot/Rsboot.efi
 ```
 
-### 3.2 Create the `.inf` binary file
+### 3.2 Create the `.inf` file
 
 `OvmfPkg/Rsboot/Rsboot.inf`: 
 
@@ -124,7 +124,7 @@ qemu-system-x86_64 -enable-kvm -cpu host -machine q35 -m 4G \
 
 ```
 
-**Network:** the NIC must be able to reach whatever the `os_list` URLs point at. With `-netdev user` the host is `10.0.2.2`, to hit the homelab `mirror at `192.168.100.3`, put the NIC on the `bridge-pxe` tap instead:
+**Network:** the NIC must be able to reach whatever the `os_list` URLs point at. With `-netdev user` the host is `10.0.2.2`, to hit the homelab mirror at `192.168.100.3`, put the NIC on the `bridge-pxe` tap instead:
 
 ```sh
 sudo ip tuntap add dev tap0 mode tap user $(id -un) 
