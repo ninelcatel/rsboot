@@ -109,7 +109,7 @@ See [`efi/README.md`](efi/README.md) for build details and [`qemu/README.md`](qe
 - [x] HTTP mirror container for the OS images
 - [x] Fetch the catalog at runtime, same format as [`os_list`](efi/assets/os_list), with the bundled one kept as a fallback
 - [x] Small Python cron job, **only** for Latest-edition/rolling-release distros 
-- [x] VPS hosting the mirror
+- [ ] Hosting the mirror
 - [ ] End-to-end boot test for every distro
 
 > Local **minimal** setup (dnsmasq + nginx, bare-metal or Docker) lives in
