@@ -23,6 +23,8 @@ with a live progress bar and ESC-to-abort.
 4. **Verify**: sha256 integrity check (catches corrupt downloads).
 5. **Boot**: hand off to the installer using the right boot method for the OS.
 
+![](./docs/app.gif)
+
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{
   'fontFamily':'monospace','fontSize':'13px',
