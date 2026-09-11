@@ -19,8 +19,10 @@ services:
       lan: { ipv4_address: 192.168.44.3 }
     volumes:
       - ../../Downloads/os/new_os/:/usr/share/nginx/html
+      # you can change your os path here
       - ./mirror/update_distros.py:/home/update_distros.py:ro
       - ./mirror/distros.json:/home/distros.json:ro
+      - ./mirror/hashes.json:/home/hashes.json
 
 networks:
   lan:
