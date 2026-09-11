@@ -63,8 +63,8 @@ sudo pacman -S qemu-full edk2-ovmf
 
 sudo pacman -S docker docker-compose docker-dinit
 
-sudo dinitctl enable docker
-sudo dinitctl start docker
+sudo dinitctl enable dockerd
+sudo dinitctl start dockerd
 
 ```
 
