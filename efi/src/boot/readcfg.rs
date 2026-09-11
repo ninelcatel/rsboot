@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 Alexandru-Nicolas Negrișan
+
 // reads the kernel/initrd/cmdline out of the ISO: locate a known bootloader config, parse it,
 // and read files from the ISO9660filesystem.
 

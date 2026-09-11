@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 Alexandru-Nicolas Negrișan
+// Uses the EDK II RamDiskDxe, the built in assets/RamDiskDxe.efi is an
+// EDK II binary licensed under BSD-2-Clause-Patent
+// Copyright (c) Intel Corporation and contributors.
+// See NOTICE for details.
+
 // RamDisk boot method: register the iso pages as a virtual CD, find the FAT filesystem
 // and load \EFI\BOOT\BOOTX64.EFI.
 

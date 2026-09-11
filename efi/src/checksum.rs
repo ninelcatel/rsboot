@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 Alexandru-Nicolas Negrișan
+
 use sha2::{Digest, Sha256};
 
 pub fn verify_sha256(data: &[u8], expected_hex: &str) -> uefi::Result {

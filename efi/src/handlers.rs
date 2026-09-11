@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 Alexandru-Nicolas Negrișan
+// Definitions from this file (EFI_RAM_DISK_PROTOCOL, EFI_DEVICE_PATH and the EFI_LOAD_FILE2_PROTOCOL)
+// are adapted from EDK II, licensed underBSD-2-Clause-Patent.
+// Copyright (c) Intel Corporation and contributors.
+// LINUX_EFI_INITRD_MEDIA_GUID is the initrd LoadFile2 GUID defined by the Linux kernel EFI stub
+// See NOTICE for details.
+
 extern crate alloc;
 
 pub const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");

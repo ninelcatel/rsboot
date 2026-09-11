@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 Alexandru-Nicolas Negrișan
+
 extern crate alloc;
 
 const PAGE_ALLIGNER: usize = 2 << 10 << 10; // 2 MB

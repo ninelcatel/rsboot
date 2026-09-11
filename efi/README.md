@@ -29,7 +29,7 @@ make install RELEASE=1     # optimized build
 * **hadris-io**: read wrapper over the ISO bytes for hadris-iso
 * **sha2**: integrity check for the iso 
 
-
+### RamDiskDxe fallback: From Tianocore official EDK2 OVMF repository, built from commit `fc939c7b37d72e5245a7a5abeda576704b5bd31b` 
 
 
 ### GUIDs  that may or may not be used from [edk2 repo](https://github.com/tianocore/edk2/blob/master/MdePkg/MdePkg.dec):

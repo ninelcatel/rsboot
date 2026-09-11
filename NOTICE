@@ -1,0 +1,48 @@
+rsboot
+Copyright (c) 2026 Alexandru-Nicolas Negrișan
+
+rsboot is licensed under the BSD-3-Clause license (see LICENSE).
+
+This product includes software developed by third parties. The complete
+license texts for all Rust dependencies are located in
+./THIRD-PARTY-LICENSES.html (generated with `cargo about`). The attributions
+below cover code and binaries vendored or adapted directly into this
+repository, plus dependencies whose licenses carry source-availability or
+special-attribution terms.
+
+--------------------------------------------------------------------------------
+EDK II
+License:   BSD-2-Clause-Patent
+Copyright: (c) Intel Corporation and contributors
+Source:    https://github.com/tianocore/edk2
+Commit:    fc939c7b37d72e5245a7a5abeda576704b5bd31b
+
+  * efi/assets/RamDiskDxe.efi is an unmodified EDK II driver binary,
+    redistributed under BSD-2-Clause-Patent.
+  * Portions of efi/src/handlers.rs (EFI_RAM_DISK_PROTOCOL, EFI_DEVICE_PATH,
+    and the EFI_LOAD_FILE2_PROTOCOL layout) are adapted from EDK II headers.
+
+--------------------------------------------------------------------------------
+ucs2-rs
+License:   MPL-2.0
+Copyright: (c) rust-osdev contributors
+Source:    https://github.com/rust-osdev/ucs2-rs
+
+  * Transitive dependency, used unmodified.
+
+--------------------------------------------------------------------------------
+unicode-ident
+License:   (MIT OR Apache-2.0) AND Unicode-3.0
+Copyright: (c) Unicode, Inc.
+Source:    https://github.com/dtolnay/unicode-ident
+
+  * Used under the Unicode License v3.
+
+--------------------------------------------------------------------------------
+Linux kernel
+Source:    https://github.com/torvalds/linux
+
+  * LINUX_EFI_INITRD_MEDIA_GUID (5568e427-68fc-4f3d-ac74-ca555231cc68) in
+    efi/src/handlers.rs is the initrd-LoadFile2 GUID defined by
+    the Linux kernel EFI stub. Only the GUID constant is used. 
+    No kernel code is copied or vendored.
