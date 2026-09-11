@@ -47,6 +47,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -81,6 +87,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-io"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eb1aa714776b75c7e67e1da744b81a129b3ff919c8712b5e1b32252c1f07cc7"
+
+[[package]]
 name = "endian-num"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -92,60 +104,92 @@ dependencies = [
 
 [[package]]
 name = "hadris-common"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69865bf6659f52a005745c4b92c556950135c0759796b58e6d34914c077e6a40"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
 dependencies = [
  "bytemuck",
+ "hadris-fixed",
  "hadris-io",
- "noalloc",
+ "hadris-path",
+ "heapless",
  "zerocopy",
 ]
 
 [[package]]
+name = "hadris-fixed"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "hadris-io"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee996c28ddacd8bc6a9ad0fcb033fa1d50cfd37bbc101dcf711109139e750d2b"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
 dependencies = [
  "bytemuck",
  "cfg-if",
+ "embedded-io",
 ]
 
 [[package]]
 name = "hadris-iso"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59c193da4384689a5f4baed1ff6f36c9d1466eddac2aec74699c3f2bdec763b1"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
 dependencies = [
  "bitflags",
  "bytemuck",
  "hadris-common",
+ "hadris-fixed",
  "hadris-io",
  "hadris-macros",
  "hadris-part",
+ "hadris-path",
  "spin",
 ]
 
 [[package]]
 name = "hadris-macros"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6c8bae1a295c4f8753ae8dea0ae0b79d03f737dcc8bf4deb3c7ee876468f437"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
 dependencies = [
  "proc-macro2",
 ]
 
 [[package]]
 name = "hadris-part"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa95f2f83212549ec4421a4fbd0a0eb4b0b20f8a27d48b71b5dcd7b987752edf"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
 dependencies = [
  "bytemuck",
  "endian-num",
  "hadris-io",
  "hadris-macros",
+]
+
+[[package]]
+name = "hadris-path"
+version = "2.4.0"
+source = "git+https://github.com/hxyulin/hadris?rev=fae5e477#fae5e477e7d9ad000fd3a07bf4b5943e8c3b84f5"
+
+[[package]]
+name = "hash32"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
+name = "heapless"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ba4bd83f9415b58b4ed8dc5714c76e626a105be4646c02630ad730ad3b5aa4"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
 ]
 
 [[package]]
@@ -177,12 +221,6 @@ name = "log"
 version = "0.4.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
-
-[[package]]
-name = "noalloc"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a2537501480803dd22fbd79a39ea83318caba3ba936f7554f7139f4180faa94"
 
 [[package]]
 name = "proc-macro2"
@@ -252,12 +290,18 @@ dependencies = [
 
 [[package]]
 name = "spin"
-version = "0.10.1"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "023a211cb3138dbc438680b32560ad89f699977624c9f8dbb95a47d5b4c07dd3"
+checksum = "0134f9043ed38b087ac4f7d4af44c79e2c9e5094421fe3164f435ce585953b10"
 dependencies = [
  "lock_api",
 ]
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "syn"

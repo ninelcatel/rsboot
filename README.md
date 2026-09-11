@@ -1,4 +1,7 @@
 # rsboot
+
+[**License**](LICENSE) (BSD-3-Clause) [**Docs**](docs/README.md) [**Third-party licenses**](THIRD-PARTY-LICENSES.html)
+
 ---
 >**A diskless UEFI OS installer, written in Rust.**
 
@@ -74,21 +77,37 @@ Different distros expect their install media in different ways, so **rsboot** pi
 ---
 ## Quick start
 
+**rsboot** pulls its OS catalog and images from a mirror on the LAN (the built-in catalog is only a fallback).
+A run needs a mirror serving the ISOs. The [`homelab`](homelab/) setup brings the mirror + PXE up for you:
+
 ```sh
-# build the .efi and copy it into the QEMU ESP
-# make flags:  ARCH=aarch64 RELEASE=1 | defaults x86_64, 0(debug)
+# build the .efi
 cd efi && make install
 
-# host some ISOs locally (QEMU maps 10.0.2.2 to host)
-python3 -m http.server 8000 --directory <dir-with-isos>
+# bring up the mirror + PXE containers  
+cd ../homelab && docker compose up -d --build
 
-# boot it 
-# make flags: MEM=4G NOGRAPHIC=1 | defaults: 2G, 0(graphical)
-cd ../qemu && make run-app 
+# boot it under QEMU on the containers' network
+sudo ip tuntap add dev tap0 mode tap user $(id -un)
+sudo ip link set tap0 master bridge-pxe
+sudo ip link set tap0 up
+cd ../qemu && make run-pxe
 ```
 
-See [`efi/README.md`](efi/README.md) for build details and [`qemu/README.md`](qemu/README.md) for the test setup.
+See [`homelab/README.md`](homelab/README.md) for the mirror/PXE setup.
+[`efi/README.md`](efi/README.md) for build details.
+[`qemu/README.md`](qemu/README.md) for the testing.
 
+### Using your own images / catalog
+
+The catalog is one distro per line: `family | edition | version | image type | boot | sha256 | url`
+(see [`efi/assets/os_list`](efi/assets/os_list) for the full format).
+
+* At runtime rsboot fetches the live catalog from the mirror (`LIST_URL` in [`downloader.rs`](efi/src/downloader.rs), `http://192.168.44.3/os_list`).
+  Only falls back to the built-in `os_list` if that fetch fails.
+  To change shipped OS, edit the [distros list](homelab/mirror/distros.json) **served by the mirror**, don't rebuild.
+* To change the fallback (or boot with no mirror), edit `efi/assets/os_list` and rebuild. 
+  If you boot with no mirror, it will take a few seconds for the bootloader to fall back to the built-in list (awaits timeout).
 ---
 ## Status
 
