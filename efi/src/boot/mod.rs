@@ -106,7 +106,7 @@ pub fn boot(
 }
 
 // load a EFI image already sitting in RAM and return its handle
-fn load_from_buffer(parent: uefi::Handle, buffer: &[u8]) -> uefi::Result<uefi::Handle> {
+pub fn load_from_buffer(parent: uefi::Handle, buffer: &[u8]) -> uefi::Result<uefi::Handle> {
     load_image(
         parent,
         uefi::boot::LoadImageSource::FromBuffer {

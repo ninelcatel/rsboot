@@ -3,6 +3,8 @@
 
 extern crate alloc;
 
+use crate::boot::load_from_buffer;
+
 const PAGE_ALLIGNER: usize = 2 << 10 << 10; // 2 MB
 // the whole iso, living in one contiuous allocation (RESERVED so the booted OS
 // won't reuse it). write the download straight into it, so there's
@@ -80,6 +82,14 @@ impl Drop for IsoBuffer {
         }
     }
 }
+
+// drivers for http stack, UEFI might not connect them to the controller
+// or might not even have them at all
+const HTTP_UTILS_DXE: &[u8] = include_bytes!("../assets/HttpUtilitiesDxe.efi");
+const HTTP_DXE: &[u8] = include_bytes!("../assets/HttpDxe.efi");
+const TCP_DXE: &[u8] = include_bytes!("../assets/TcpDxe.efi");
+const DNS_DXE: &[u8] = include_bytes!("../assets/DnsDxe.efi");
+
 pub struct Downloader {
     nic: uefi::Handle,
 }
@@ -87,8 +97,12 @@ pub struct Downloader {
 impl Downloader {
     const LIST_URL: &str = "http://192.168.44.3/os_list";
     pub fn connect() -> uefi::Result<Self> {
-        let nic = uefi::boot::get_handle_for_protocol::<uefi::proto::network::http::HttpBinding>()?;
-        let mut ip = uefi::proto::network::ip4config2::Ip4Config2::new(nic)?;
+        let nic = Self::get_http_binding(uefi::boot::image_handle())?;
+        let ip4_handles = uefi::boot::locate_handle_buffer(uefi::boot::SearchType::from_proto::<
+            uefi::proto::network::ip4config2::Ip4Config2,
+        >())?;
+        let ip4_handle = *ip4_handles.first().ok_or(uefi::Status::NOT_FOUND)?;
+        let mut ip = uefi::proto::network::ip4config2::Ip4Config2::new(ip4_handle)?;
         ip.ifup()?;
         Ok(Self { nic })
     }
@@ -197,5 +211,45 @@ impl Downloader {
             return Err(uefi::Status::PROTOCOL_ERROR.into());
         };
         Ok((http, first))
+    }
+
+    // most uefi won't connect ALL network drivers in preboot environment unless its PXE or
+    // something
+    fn connect_netw_drivers() -> uefi::Result<()> {
+        let handles = uefi::boot::locate_handle_buffer(uefi::boot::SearchType::from_proto::<
+            uefi::proto::network::snp::SimpleNetwork,
+        >())?;
+        for &handle in handles.iter() {
+            match uefi::boot::connect_controller(handle, &[], None, true) {
+                Ok(()) => {}
+                Err(status)
+                    if matches!(
+                        status.status(),
+                        uefi::Status::NOT_FOUND
+                            | uefi::Status::ALREADY_STARTED
+                            | uefi::Status::UNSUPPORTED
+                    ) => {}
+                Err(err) => return Err(err),
+            }
+        }
+        Ok(())
+    }
+    // checks for the http drivers before and then returns the handler
+    fn get_http_binding(handle: uefi::Handle) -> uefi::Result<uefi::Handle> {
+        Self::connect_netw_drivers()?;
+        match uefi::boot::get_handle_for_protocol::<uefi::proto::network::http::HttpBinding>() {
+            Ok(http_handle) => Ok(http_handle),
+            // if not found, means drivers arent present, load fallback dxe
+            Err(error) if error.status() == uefi::Status::NOT_FOUND => {
+                uefi::boot::start_image(load_from_buffer(handle, HTTP_UTILS_DXE)?)?;
+                uefi::boot::start_image(load_from_buffer(handle, HTTP_DXE)?)?;
+
+                Self::connect_netw_drivers()?;
+
+                uefi::boot::get_handle_for_protocol::<uefi::proto::network::http::HttpBinding>()
+            }
+
+            Err(error) => Err(error),
+        }
     }
 }
