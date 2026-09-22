@@ -19,6 +19,12 @@ Commit:    fc939c7b37d72e5245a7a5abeda576704b5bd31b
 
   * efi/assets/RamDiskDxe.efi is an unmodified EDK II driver binary,
     redistributed under BSD-2-Clause-Patent.
+  * efi/assets/DnsDxe.efi is an unmodified EDK II driver binary,
+    redistributed under BSD-2-Clause-Patent.
+  * efi/assets/HttpUtilitiesDxe.efi is an unmodified EDK II driver binary,
+    redistributed under BSD-2-Clause-Patent.
+  * efi/assets/HttpDxe.efi is an unmodified EDK II driver binary,
+    redistributed under BSD-2-Clause-Patent.
   * Portions of efi/src/handlers.rs (EFI_RAM_DISK_PROTOCOL, EFI_DEVICE_PATH,
     and the EFI_LOAD_FILE2_PROTOCOL layout) are adapted from EDK II headers.
 
