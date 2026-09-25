@@ -29,8 +29,11 @@ fn main() -> Status {
 }
 fn run() -> uefi::Result {
     uefi::helpers::init()?;
-    log::set_max_level(log::LevelFilter::Info); // without this, it adds unnecessarry buffering and
+    log::set_max_level(log::LevelFilter::Info);
+    // without this, it adds unnecessarry buffering and
     // downloads REALLY slow
+    uefi::boot::set_watchdog_timer(0, 0, None)?;
+    // disable watchdog for long downloads
     let mut running: bool = true;
 
     let enter: Char16 = Char16::try_from('\r').expect("'\\r' should always be a valid char");
@@ -166,7 +169,9 @@ fn run() -> uefi::Result {
                                 Some(hex) => checksum::verify_sha256(buffer.as_slice(), hex),
                                 None => Ok(()),
                             };
-                            match verified.and_then(|_| boot(buffer, os.boot_method)) {
+                            match verified.and_then(|_| {
+                                boot(buffer, os.boot_method, &children_names[current_pick])
+                            }) {
                                 Ok(()) => {}
                                 Err(e) => {
                                     tui.show_error(e.status());

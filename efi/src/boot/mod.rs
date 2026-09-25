@@ -10,8 +10,9 @@ mod readcfg;
 use uefi::boot::{load_image, start_image};
 
 use crate::{
+    boot::readcfg::void_fallback,
     environment::{self, BootMethod},
-    handlers::{EFI_RAM_DISK_PROTOCOL, install_initrd},
+    handlers::{EFI_RAM_DISK_PROTOCOL, install_initrd, install_nfit},
 };
 
 use cpio::{GENTOO_HOOK, HOOK_PATH, build_cpio};
@@ -21,6 +22,7 @@ use readcfg::{CONFIGS, parse_config, read_iso};
 pub fn boot(
     iso: crate::downloader::IsoBuffer,
     boot_method: environment::BootMethod,
+    os: &str,
 ) -> uefi::Result {
     let handler = uefi::boot::image_handle();
 
@@ -32,6 +34,8 @@ pub fn boot(
             let ram_disk =
                 uefi::boot::open_protocol_exclusive::<EFI_RAM_DISK_PROTOCOL>(ramdisk_handle)?;
 
+            install_nfit(iso.as_ptr() as u64, iso.mapped_len() as u64)?;
+
             let vcd = register_virtual_cd(&ram_disk, iso)?;
             let fs_handle = find_fat_fs(vcd.device_path())?;
             let instance = load_boot_file(fs_handle, handler)?;
@@ -41,17 +45,28 @@ pub fn boot(
         //same kernel + initrd from the ISO logic.
         // only initrd and cmdline differs
         BootMethod::Memmap | BootMethod::LoopInjection => {
-            let boot_cfg = CONFIGS
-                .iter()
-                .find_map(|p| read_iso(&iso, p))
-                .and_then(parse_config)
-                .or_else(|| readcfg::grub_fallback(&iso))
-                .ok_or(uefi::Status::NOT_FOUND)?;
-
+            let boot_cfg = match os {
+                "Void" => void_fallback(),
+                "Artix" => readcfg::grub_fallback(&iso).ok_or(uefi::Status::NOT_FOUND)?,
+                _ => CONFIGS
+                    .iter()
+                    .find_map(|p| read_iso(&iso, p))
+                    .and_then(parse_config)
+                    .or_else(|| readcfg::grub_fallback(&iso))
+                    .ok_or(uefi::Status::ABORTED)?,
+            };
             let kernel_bytes =
                 read_iso(&iso, &boot_cfg.kernel_path).ok_or(uefi::Status::NOT_FOUND)?;
-            let mut initrd =
-                read_iso(&iso, &boot_cfg.initrd_path).ok_or(uefi::Status::NOT_FOUND)?;
+
+            let mut initrd = alloc::vec::Vec::new();
+
+            for path in boot_cfg.initrd_path.split_whitespace() {
+                let bytes = read_iso(&iso, path).ok_or(uefi::Status::NOT_FOUND)?;
+                while !initrd.len().is_multiple_of(4) {
+                    initrd.push(0);
+                }
+                initrd.extend_from_slice(&bytes);
+            }
 
             let cmdline = match boot_method {
                 BootMethod::LoopInjection => {
@@ -76,7 +91,8 @@ pub fn boot(
                 }
                 _ => unreachable!("this block reaches only  memmap or loop injection"),
             };
-
+            // make iso detectable by nfit kmodule
+            install_nfit(iso.as_ptr() as u64, iso.mapped_len() as u64)?;
             let instance = load_from_buffer(handler, &kernel_bytes)?;
             let installed_initrd = install_initrd(initrd)?;
 
