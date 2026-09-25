@@ -8,60 +8,70 @@ extern crate alloc;
 
 use crate::{downloader::IsoBuffer, environment::BootConfig};
 
-pub(super) const CONFIGS: [&str; 3] = [
+pub(super) const CONFIGS: [&str; 7] = [
     "boot/syslinux/archiso_sys-linux.cfg", // arch / cachy / blackarch (syslinux)
-    "boot/grub/grub.cfg",                  // gentoo etc (grub)
-    "EFI/BOOT/grub.cfg",                   // opensuse (grub, efi-only)
+    "boot/isolinux/isolinux.cfg",
+    "boot/grub2/grub.cfg",
+    "boot/grub/grub.cfg", // gentoo etc (grub)
+    "EFI/debian/grub.cfg",
+    "EFI/BOOT/grub.cfg",
+    "isolinux/live64.cfg",
 ];
+pub(super) fn void_fallback() -> BootConfig {
+    BootConfig {
+        kernel_path: "boot/vmlinuz".into(),
+        initrd_path: "boot/initrd".into(),
+        cmdline: concat!(
+            "root=live:CDLABEL=VOID_LIVE ",
+            "ro init=/sbin/init ",
+            "rd.luks=0 rd.md=0 rd.dm=0"
+        )
+        .into(),
+    }
+}
 
 // returns paths as Strings, stopped returning CStr16 due to the new ISO9660 parser using String
 pub(super) fn parse_config(config: alloc::vec::Vec<u8>) -> Option<BootConfig> {
     use alloc::string::ToString;
 
-    let text = core::str::from_utf8(&config).unwrap_or("");
-    // first entry only: is_none() condition
-    // configs list several menu entries,
+    let text = core::str::from_utf8(&config).ok()?;
     let (mut kernel, mut initrd, mut options, mut inline_opts) = (None, None, None, None);
 
     for line in text.lines() {
-        let l = line.trim();
+        let line = line.trim();
+
+        let mut fields = line.splitn(2, char::is_whitespace);
+        let directive = fields.next()?;
+        let value = fields.next().unwrap_or("").trim();
+
         if kernel.is_none()
-            && let Some(s) = l
-                .strip_prefix("linux ") // systemd-boot / grub
-                .or_else(|| l.strip_prefix("LINUX ")) // syslinux
-                .or_else(|| l.strip_prefix("KERNEL "))
-        // isolinux
+            && matches!(
+                directive,
+                "linux" | "linuxefi" | "LINUX" | "KERNEL" | "kernel"
+            )
         {
-            // grub combines "linux <path> <options>"; syslinux/systemd-boot give just the path
-            match s.trim().split_once(char::is_whitespace) {
-                Some((path, rest)) => {
-                    kernel = Some(path.to_string());
-                    inline_opts = Some(rest.trim().to_string());
-                }
-                None => kernel = Some(s.trim().to_string()),
+            let mut args = value.splitn(2, char::is_whitespace);
+
+            kernel = Some(args.next()?.to_string());
+
+            if let Some(rest) = args.next().filter(|s| !s.trim().is_empty()) {
+                inline_opts = Some(rest.trim().to_string());
             }
         }
-        if initrd.is_none()
-            && let Some(s) = l
-                .strip_prefix("initrd ") // systemd-boot / grub
-                .or_else(|| l.strip_prefix("INITRD "))
-        // syslinux/isolinux
-        {
-            initrd = Some(s.trim().to_string());
+
+        if initrd.is_none() && matches!(directive, "initrd" | "initrdefi" | "INITRD") {
+            initrd = Some(value.to_string());
         }
-        if options.is_none()
-            && let Some(s) = l
-                .strip_prefix("options ") // systemd-boot
-                .or_else(|| l.strip_prefix("APPEND "))
-        // syslinux/isolinux
-        {
-            options = Some(s.trim().to_string());
+
+        if options.is_none() && matches!(directive, "options" | "APPEND" | "append") {
+            options = Some(value.to_string());
         }
     }
+
     Some(BootConfig {
         kernel_path: kernel?,
         initrd_path: initrd?,
-        cmdline: options.or(inline_opts)?,
+        cmdline: options.or(inline_opts).unwrap_or_default(),
     })
 }
 
