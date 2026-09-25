@@ -11,6 +11,7 @@ extern crate alloc;
 pub const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
 pub const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
 
+const ACPI_TABLE_PROTOCOL: uefi::Guid = uefi::guid!("ffe06bdd-6107-46a6-7bb2-5a9c7ec5275c");
 // EFI_LOAD_FILE2_PROTOCOL guid + the vendor guid the kernel's EFI stub looks up for its initrd
 const LOAD_FILE2_GUID: uefi::Guid = uefi::guid!("4006c0c1-fcb3-403e-996d-4a6c8724e06d");
 const DEVICE_PATH_GUID: uefi::Guid = uefi::guid!("09576e91-6d3f-11d2-8e39-00a0c969723b");
@@ -179,4 +180,255 @@ pub fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result<InstalledInit
         dp,
         initrd,
     })
+}
+
+#[repr(C)]
+struct AcpiTableProtocol {
+    install_acpi_table: unsafe extern "efiapi" fn(
+        this: *const AcpiTableProtocol,
+        acpi_table_buffer: *const u8,
+        acpi_table_buffer_size: usize,
+        table_key: *mut usize,
+    ) -> uefi::Status,
+
+    uninstall_acpi_table:
+        unsafe extern "efiapi" fn(this: *const AcpiTableProtocol, table_key: usize) -> uefi::Status,
+}
+
+unsafe impl uefi::Identify for AcpiTableProtocol {
+    const GUID: uefi::Guid = ACPI_TABLE_PROTOCOL;
+}
+
+impl uefi::proto::Protocol for AcpiTableProtocol {}
+
+use uefi::{Identify, StatusExt};
+/// install into the acpi table the SSDT containing ACPI0012 and the NFIT virtual volatile disk
+pub fn install_nfit(base: u64, len: u64) -> uefi::Result {
+    if len == 0 {
+        return Err(uefi::Status::INVALID_PARAMETER.into());
+    }
+
+    base.checked_add(len)
+        .ok_or(uefi::Status::INVALID_PARAMETER)?;
+
+    let handle = *uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(
+        &AcpiTableProtocol::GUID,
+    ))?
+    .first()
+    .ok_or(uefi::Status::NOT_FOUND)?;
+
+    let proto = unsafe {
+        uefi::boot::open_protocol::<AcpiTableProtocol>(
+            uefi::boot::OpenProtocolParams {
+                handle,
+                agent: uefi::boot::image_handle(),
+                controller: None,
+            },
+            uefi::boot::OpenProtocolAttributes::GetProtocol,
+        )?
+    };
+
+    let ssdt = build_ssdt()?;
+    let nfit = build_nfit(base, len)?;
+
+    let mut ssdt_key = 0;
+
+    // the ssdt must exist before the nfit driver binds to the SPA range
+    unsafe {
+        (proto.install_acpi_table)(&*proto, ssdt.as_ptr(), ssdt.len(), &mut ssdt_key)
+            .to_result()?;
+    }
+
+    let mut nfit_key = 0usize;
+
+    unsafe { (proto.install_acpi_table)(&*proto, nfit.as_ptr(), nfit.len(), &mut nfit_key) }
+        .to_result()?;
+
+    Ok(())
+}
+
+// build the NFIT entry with the iso buffer poitner and len
+// this basically describes the memory address the nfit driver will act on
+fn build_nfit(base: u64, len: u64) -> uefi::Result<alloc::vec::Vec<u8>> {
+    const ACPI_HEADER_SIZE: usize = 36;
+    const NFIT_RESERVED_SIZE: usize = 4;
+    const SPA_RANGE_SIZE: usize = 56;
+    const NFIT_SIZE: usize = ACPI_HEADER_SIZE + NFIT_RESERVED_SIZE + SPA_RANGE_SIZE;
+
+    let mut table = alloc::vec::Vec::with_capacity(NFIT_SIZE);
+
+    append_acpi_header(
+        &mut table,
+        *b"NFIT",
+        NFIT_SIZE as u32,
+        1,
+        *b"RSBOOT",
+        *b"RAMDISK ",
+    );
+
+    // nfit reserved field  after the acpi header.
+    table.extend_from_slice(&0u32.to_le_bytes());
+    // SPA structure
+    table.extend_from_slice(&0u16.to_le_bytes()); // 0 SPA range.
+    table.extend_from_slice(&(SPA_RANGE_SIZE as u16).to_le_bytes());
+    // spa flags and attributes
+    table.extend_from_slice(&0u16.to_le_bytes());
+    table.extend_from_slice(&0u16.to_le_bytes());
+    table.extend_from_slice(&0u32.to_le_bytes());
+    table.extend_from_slice(&0u32.to_le_bytes());
+    // VOLATILE VIRTUAL DISK GUID
+    table.extend_from_slice(&[
+        0x5a, 0x53, 0xab, 0x77, 0xfc, 0x45, 0x4b, 0x62, 0x55, 0x60, 0xf7, 0xb2, 0x81, 0xd1, 0xf9,
+        0x6e,
+    ]);
+    table.extend_from_slice(&base.to_le_bytes());
+    table.extend_from_slice(&len.to_le_bytes());
+    //ramdisk edk2 conventions
+    table.extend_from_slice(&0u64.to_le_bytes());
+
+    edit_acpi_chksum(&mut table)?;
+
+    Ok(table)
+}
+// this is just black magic for ssdt acpi entry
+// similar to nfit build but requires this append_pkg_length stuff in order
+// for the OS' acpi interpreter (ACPI machine language) to understand it
+// this is basically for the OS to be able to bind the NFIT driver
+fn build_ssdt() -> uefi::Result<alloc::vec::Vec<u8>> {
+    let mut device_body = alloc::vec::Vec::new();
+
+    device_body.extend_from_slice(b"NVDR");
+
+    device_body.push(0x08);
+    device_body.extend_from_slice(b"_HID");
+    device_body.push(0x0d);
+    device_body.extend_from_slice(b"ACPI0012");
+    device_body.push(0x00);
+    let mut method_body = alloc::vec::Vec::new();
+
+    method_body.extend_from_slice(b"_STA");
+    method_body.push(0x00);
+    method_body.push(0xa4);
+    method_body.push(0x0a);
+    method_body.push(0x0f);
+    device_body.push(0x14);
+    append_pkg_length(&mut device_body, method_body.len())?;
+    device_body.extend_from_slice(&method_body);
+
+    let mut device = alloc::vec::Vec::new();
+
+    device.push(0x5b);
+    device.push(0x82);
+    append_pkg_length(&mut device, device_body.len())?;
+    device.extend_from_slice(&device_body);
+
+    let mut scope_body = alloc::vec::Vec::new();
+
+    scope_body.push(0x5c);
+    scope_body.extend_from_slice(b"_SB_");
+    scope_body.extend_from_slice(&device);
+
+    let mut aml = alloc::vec::Vec::new();
+
+    aml.push(0x10);
+    append_pkg_length(&mut aml, scope_body.len())?;
+    aml.extend_from_slice(&scope_body);
+
+    let total_size = 36usize + aml.len();
+
+    let mut table = alloc::vec::Vec::with_capacity(total_size);
+
+    append_acpi_header(
+        &mut table,
+        *b"SSDT",
+        total_size as u32,
+        2,
+        *b"RSBOOT",
+        *b"RAMDISK ",
+    );
+
+    table.extend_from_slice(&aml);
+
+    edit_acpi_chksum(&mut table)?;
+
+    Ok(table)
+}
+
+fn append_acpi_header(
+    table: &mut alloc::vec::Vec<u8>,
+    signature: [u8; 4],
+    length: u32,
+    revision: u8,
+    oem_id: [u8; 6],
+    oem_table_id: [u8; 8],
+) {
+    table.extend_from_slice(&signature);
+    table.extend_from_slice(&length.to_le_bytes());
+    table.push(revision);
+    table.push(0);
+    table.extend_from_slice(&oem_id);
+    table.extend_from_slice(&oem_table_id);
+    table.extend_from_slice(&1u32.to_le_bytes());
+    table.extend_from_slice(b"RSBT");
+    table.extend_from_slice(&1u32.to_le_bytes());
+}
+
+// needed for building anything written in AML
+// this lets OS know where each section ends
+// i.e method-pkg_length-devbody
+fn append_pkg_length(output: &mut alloc::vec::Vec<u8>, body_length: usize) -> uefi::Result {
+    for encoded_length in 1usize..=4 {
+        let package_length = body_length
+            .checked_add(encoded_length)
+            .ok_or(uefi::Status::BAD_BUFFER_SIZE)?;
+
+        let maximum = match encoded_length {
+            1 => 0x3f,
+            2 => 0x0fff,
+            3 => 0x0f_ffff,
+            4 => 0x0fff_ffff,
+            _ => unreachable!(),
+        };
+
+        if package_length <= maximum {
+            encode_pkg_length(output, package_length, encoded_length);
+            return Ok(());
+        }
+    }
+    Err(uefi::Status::BAD_BUFFER_SIZE.into())
+}
+//helper for pkg length
+fn encode_pkg_length(
+    output: &mut alloc::vec::Vec<u8>,
+    package_length: usize,
+    encoded_length: usize,
+) {
+    if encoded_length == 1 {
+        output.push(package_length as u8);
+        return;
+    }
+
+    let following_bytes = encoded_length - 1;
+
+    let lead = ((following_bytes as u8) << 6) | ((package_length & 0x0f) as u8);
+
+    output.push(lead);
+
+    let mut remaining = package_length >> 4;
+
+    for _ in 0..following_bytes {
+        output.push((remaining & 0xff) as u8);
+        remaining >>= 8;
+    }
+}
+fn edit_acpi_chksum(table: &mut [u8]) -> uefi::Result<()> {
+    if table.len() < 36 {
+        return Err(uefi::Status::BAD_BUFFER_SIZE.into());
+    }
+    table[9] = 0; // checksum byte of the ACPI header 
+
+    let sum = table.iter().copied().fold(0u8, u8::wrapping_add);
+
+    table[9] = 0u8.wrapping_sub(sum); // two complement of whole table sum
+    Ok(())
 }
