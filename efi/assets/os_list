@@ -16,15 +16,14 @@
 # checksum: only those are eligible for the cron download
 
 # stable distros keep a 'latest' entry plus the last pinned versions
-AlmaLinux   | boot      | latest     | memmap    | memmap | - | http://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10.2-x86_64-boot.iso
+AlmaLinux   | boot      | latest     | -    | memmap | - | http://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10.2-x86_64-boot.iso
 Alpine      | Virtual      | latest     | minimal    | memmap | - | http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-virt-3.24.0-x86_64.iso
 Alpine      | Extended     | 3.22.5     | full       | memmap | - | http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.24.0-x86_64.iso
 CentOS      | Stream       | latest     | full       | memmap | - | http://mirrors.chroot.ro/centos-stream/10-stream/BaseOS/x86_64/iso/CentOS-Stream-10-20260922.0-x86_64-boot.iso
-Debian      | memmap            | 13.7.0     | netinstall | memmap | - | http://mirrors.pidginhost.com/debian-cd/13.7.0/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso
+Debian      | minimal            | 13.7.0     | netinstall | memmap | - | http://mirrors.pidginhost.com/debian-cd/13.7.0/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso
 Debian      | ARM          | 13.7.0     | netinstall | memmap | - | http://mirrors.pidginhost.com/debian-cd/13.7.0/arm64/iso-cd/debian-13.7.0-arm64-netinst.iso
 Devuan      | -            | 7.0     | netinstall | memmap | - | http://devuan-cd.sedf.de/devuan_freia/installer-iso/devuan_freia_7.0-202609191653_amd64_netinstall.iso
 Fedora      | KDE        | 44     | live       | memmap | - | http://mirrors.chroot.ro/fedora/linux/releases/44/KDE/x86_64/iso/Fedora-KDE-Desktop-Live-44-1.7.x86_64.iso
-Kali        | Installer    | latest     | minimal    | ramdisk | - | https://http.kali.org/dists/kali-rolling/main/installer-amd64/current/images/netboot/mini.iso
 Manjaro     | KDE          | 26.1.0     | live       | memmap | - | http://download.manjaro.org/kde/26.1.0/manjaro-kde-26.1.0-260812-linux71.iso
 Mint        | Cinnamon     | 22.3     | live       | memmap | - | http://mirrors.hosterion.ro/linuxmint/iso/stable/22.3/linuxmint-22.3-cinnamon-64bit.iso
 Mint        | MATE         | 22.3       | live       | memmap | - | http://mirrors.hosterion.ro/linuxmint/iso/stable/22.3/linuxmint-22.3-mate-64bit.iso
@@ -32,8 +31,7 @@ Mint        | Xfce         | 22.3       | live       | memmap | - | http://mirro
 OpenBSD     | -            | 7.9     | minimal    | ramdisk | - | http://mirrors.chroot.ro/pub/OpenBSD/7.9/amd64/install79.iso
 Rocky       | Minimal      | latest     | minimal    | memmap | - | http://mirrors.nxthost.com/rocky/10.2/isos/x86_64/Rocky-10-latest-x86_64-minimal.iso
 Rocky       | ARM          | latest     | minimal    | memmap | - | http://mirrors.nxthost.com/rocky/10.2/isos/aarch64/Rocky-10-latest-aarch64-minimal.iso
-TinyCore    | CLI          | 17.1       | minimal    | memmap | - | http://www.tinycorelinux.net/17.x/x86/release/Core-17.1.iso
-TinyCore    | GUI          | 15.0       | live       | memmap | - | http://tinycorelinux.net/17.x/x86/release/CorePlus-current.iso
+TinyCore    | CLI          | latest       | minimal    | memmap | - | http://tinycorelinux.net/17.x/x86_64/release/TinyCorePure64-current.iso
 Ubuntu      | Server       | 26.04     | live       | memmap | - | http://mirror.efect.ro/ubuntu/releases/26.04/ubuntu-26.04.1-live-server-amd64.iso
 Ubuntu      | Desktop      | 26.04      | live       | memmap | - | http://mirror.efect.ro/ubuntu/releases/26.04/ubuntu-26.04-desktop-amd64.iso
 Zorin       | -            | 18.0     | live       | memmap | - | http://mirror.dogado.de/zorinos/18/Zorin-OS-18-Core-64-bit.iso
@@ -41,7 +39,6 @@ FreeBSD     | bootonly       | 15.1     | -    | ramdisk | - | http://download.f
 FreeBSD     | minimal       | 15.1     | -    | ramdisk | - | http://download.freebsd.org/releases/ISO-IMAGES/15.1/FreeBSD-15.1-RELEASE-amd64-disc1.iso
 FreeBSD     | mfsBSD       | 14.2     | minimal    | ramdisk | - | http://mfsbsd.vx.sk/files/iso/14/amd64/mfsbsd-14.2-RELEASE-amd64.iso
 openSUSE    | Tumbleweed         | latest       | netinstall       | memmap  | - | http://mirrors.nxthost.com/opensuse/tumbleweed/iso/openSUSE-Tumbleweed-NET-x86_64-Current.iso 
-
 # most of them are rolling release (except NixOS, there will be a cronjob to build the .efi via nix)
 
 Arch        | -            | latest     | minimal    | memmap  | - | http://mirrors.chroot.ro/archlinux/iso/2026.09.01/archlinux-x86_64.iso
@@ -53,4 +50,4 @@ Gentoo      | CLI      | 20260913     | minimal    | loop    | - | http://ftp.ro
 Void        | glibc         | latest     | base    | memmap | - | http://void.sakamoto.pl/live/current/void-live-x86_64-20250202-base.iso
 Void        | musl         | latest     | base    | memmap | - | http://void.sakamoto.pl/live/current/void-live-x86_64-musl-20250202-base.iso
 Void        | glibc         | latest     | xfce    | memmap | - | http://void.sakamoto.pl/live/current/void-live-x86_64-20250202-xfce.iso
-Void        | musl         | latest     | xfce    | memmap | - | http//void.sakamoto.pl/live/current/void-live-x86_64-musl-20250202-xfce.iso
+

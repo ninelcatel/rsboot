@@ -87,7 +87,6 @@ impl Drop for IsoBuffer {
 // or might not even have them at all
 const HTTP_UTILS_DXE: &[u8] = include_bytes!("../assets/HttpUtilitiesDxe.efi");
 const HTTP_DXE: &[u8] = include_bytes!("../assets/HttpDxe.efi");
-const TCP_DXE: &[u8] = include_bytes!("../assets/TcpDxe.efi");
 const DNS_DXE: &[u8] = include_bytes!("../assets/DnsDxe.efi");
 
 pub struct Downloader {
@@ -205,7 +204,7 @@ impl Downloader {
 
         http.request_get(url)?;
         let first = http.response_first(true)?;
-        //translates to if http resp status != http 200, couldve used HttpStatus but i need to
+        //translates to if http resp status != http 200 couldve used HttpStatus but i need to
         //import another crate and i cba
         if first.status.0 != 3 {
             return Err(uefi::Status::PROTOCOL_ERROR.into());
@@ -243,7 +242,7 @@ impl Downloader {
             Err(error) if error.status() == uefi::Status::NOT_FOUND => {
                 uefi::boot::start_image(load_from_buffer(handle, HTTP_UTILS_DXE)?)?;
                 uefi::boot::start_image(load_from_buffer(handle, HTTP_DXE)?)?;
-
+                uefi::boot::start_image(load_from_buffer(handle, DNS_DXE)?)?;
                 Self::connect_netw_drivers()?;
 
                 uefi::boot::get_handle_for_protocol::<uefi::proto::network::http::HttpBinding>()
