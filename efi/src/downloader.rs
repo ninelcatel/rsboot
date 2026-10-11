@@ -39,6 +39,9 @@ impl IsoBuffer {
         let base =
             core::ptr::NonNull::new(alligned as *mut u8).ok_or(uefi::Status::OUT_OF_RESOURCES)?;
 
+        // zero the alignment padding so the region doesnt have garbage data
+        unsafe { core::ptr::write_bytes(base.as_ptr().add(len), 0, mapped - len) };
+
         let cap = pages * uefi::boot::PAGE_SIZE - (alligned - raw.as_ptr() as usize);
         Ok(Self {
             base,
