@@ -11,7 +11,6 @@ extern crate alloc;
 pub const RAM_DISK_GUID: uefi::Guid = uefi::guid!("ab38a0df-6873-44a9-87e6-d4eb56148449");
 pub const VIRTUAL_CD_GUID: uefi::Guid = uefi::guid!("3d5abd30-4175-87ce-6d64-d2ade523c4bb");
 
-const ACPI_TABLE_PROTOCOL: uefi::Guid = uefi::guid!("ffe06bdd-6107-46a6-7bb2-5a9c7ec5275c");
 // EFI_LOAD_FILE2_PROTOCOL guid + the vendor guid the kernel's EFI stub looks up for its initrd
 const LOAD_FILE2_GUID: uefi::Guid = uefi::guid!("4006c0c1-fcb3-403e-996d-4a6c8724e06d");
 const DEVICE_PATH_GUID: uefi::Guid = uefi::guid!("09576e91-6d3f-11d2-8e39-00a0c969723b");
@@ -181,27 +180,7 @@ pub fn install_initrd(initrd: alloc::vec::Vec<u8>) -> uefi::Result<InstalledInit
         initrd,
     })
 }
-
-#[repr(C)]
-struct AcpiTableProtocol {
-    install_acpi_table: unsafe extern "efiapi" fn(
-        this: *const AcpiTableProtocol,
-        acpi_table_buffer: *const u8,
-        acpi_table_buffer_size: usize,
-        table_key: *mut usize,
-    ) -> uefi::Status,
-
-    uninstall_acpi_table:
-        unsafe extern "efiapi" fn(this: *const AcpiTableProtocol, table_key: usize) -> uefi::Status,
-}
-
-unsafe impl uefi::Identify for AcpiTableProtocol {
-    const GUID: uefi::Guid = ACPI_TABLE_PROTOCOL;
-}
-
-impl uefi::proto::Protocol for AcpiTableProtocol {}
-
-use uefi::{Identify, StatusExt};
+use uefi::Identify;
 /// install into the acpi table the SSDT containing ACPI0012 and the NFIT virtual volatile disk
 pub fn install_nfit(base: u64, len: u64) -> uefi::Result {
     if len == 0 {
@@ -212,13 +191,13 @@ pub fn install_nfit(base: u64, len: u64) -> uefi::Result {
         .ok_or(uefi::Status::INVALID_PARAMETER)?;
 
     let handle = *uefi::boot::locate_handle_buffer(uefi::boot::SearchType::ByProtocol(
-        &AcpiTableProtocol::GUID,
+        &uefi::proto::acpi::AcpiTable::GUID,
     ))?
     .first()
     .ok_or(uefi::Status::NOT_FOUND)?;
 
     let proto = unsafe {
-        uefi::boot::open_protocol::<AcpiTableProtocol>(
+        uefi::boot::open_protocol::<uefi::proto::acpi::AcpiTable>(
             uefi::boot::OpenProtocolParams {
                 handle,
                 agent: uefi::boot::image_handle(),
@@ -231,18 +210,11 @@ pub fn install_nfit(base: u64, len: u64) -> uefi::Result {
     let ssdt = build_ssdt()?;
     let nfit = build_nfit(base, len)?;
 
-    let mut ssdt_key = 0;
-
     // the ssdt must exist before the nfit driver binds to the SPA range
     unsafe {
-        (proto.install_acpi_table)(&*proto, ssdt.as_ptr(), ssdt.len(), &mut ssdt_key)
-            .to_result()?;
-    }
-
-    let mut nfit_key = 0usize;
-
-    unsafe { (proto.install_acpi_table)(&*proto, nfit.as_ptr(), nfit.len(), &mut nfit_key) }
-        .to_result()?;
+        proto.install_acpi_table(ssdt.as_ptr().cast(), ssdt.len())?;
+        proto.install_acpi_table(nfit.as_ptr().cast(), nfit.len())?;
+    };
 
     Ok(())
 }

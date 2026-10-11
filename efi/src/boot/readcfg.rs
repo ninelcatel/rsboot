@@ -8,8 +8,9 @@ extern crate alloc;
 
 use crate::{downloader::IsoBuffer, environment::BootConfig};
 
-pub(super) const CONFIGS: [&str; 7] = [
+pub(super) const CONFIGS: [&str; 8] = [
     "boot/syslinux/archiso_sys-linux.cfg", // arch / cachy / blackarch (syslinux)
+    "boot/grub/loopback.cfg",
     "boot/isolinux/isolinux.cfg",
     "boot/grub2/grub.cfg",
     "boot/grub/grub.cfg", // gentoo etc (grub)

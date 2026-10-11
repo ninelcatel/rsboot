@@ -63,7 +63,7 @@ fn run() -> uefi::Result {
                 }
             }
         };
-        let list = dl.get_list();
+        let list: Option<alloc::string::String> = dl.get_list(); //None; for checking the built-in list
         let os = environment::get_list(list.as_deref());
         let names: alloc::vec::Vec<&str> = os.iter().map(|o| o.name).collect();
         let mut children_names: alloc::vec::Vec<alloc::string::String> = alloc::vec![];
